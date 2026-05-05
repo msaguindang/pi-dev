@@ -25,6 +25,15 @@
       "planner": {
         "model": "google/gemini-3.1-pro-preview-customtools",
         "thinking": "high"
+      },
+      "data-analyst": {
+        "model": "anthropic/claude-sonnet-4-6"
+      },
+      "doc-writer": {
+        "model": "anthropic/claude-haiku-4-5"
+      },
+      "system-architect": {
+        "model": "anthropic/claude-sonnet-4-6"
       }
     }
   },
