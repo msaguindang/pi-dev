@@ -23,11 +23,11 @@
 ---
 
 ### Step 1: System Health Check
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
-- [ ] `pi doctor` checks pass
-- [ ] `taskplane doctor` checks pass
-- [ ] No critical errors in `.pi/telemetry/`
+- [x] `pi doctor` checks pass
+- [x] `taskplane doctor` checks pass
+- [x] No critical errors in `.pi/telemetry/`
 
 ---
 
@@ -70,6 +70,7 @@
 | 2026-05-05 07:24 | Task started | Runtime V2 lane-runner execution |
 | 2026-05-05 07:24 | Step 0 started | Preflight |
 | 2026-05-05 07:25 | Step 0 complete | All preflight checks passed |
+| 2026-05-05 07:27 | Step 1 complete | pi/taskplane doctor passed, telemetry checked |
 
 ---
 
