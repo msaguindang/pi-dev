@@ -1,4 +1,7 @@
 # Status
+**Status:** ✅ Complete
+**Current Step:** Step 3: Package Installation
+
 - [x] Create `agents/data-analyst.md`
 - [x] Create `agents/doc-writer.md`
 - [x] Migrate `controller.md` to `agents/system-architect.md`
