@@ -1,7 +1,7 @@
 # Status
-- [ ] Created `agents/data-analyst.md`
-- [ ] Created `agents/doc-writer.md`
-- [ ] Migrated `controller.md` to `agents/system-architect.md`
-- [ ] Updated `settings.json`
-- [ ] Created `agents/admin-pipeline.chain.md`
-- [ ] Installed `pi-web-access`
+- [ ] Create `agents/data-analyst.md`
+- [ ] Create `agents/doc-writer.md`
+- [ ] Migrate `controller.md` to `agents/system-architect.md`
+- [ ] Update `settings.json`
+- [ ] Create `agents/admin-pipeline.chain.md`
+- [ ] Install `pi-web-access`
