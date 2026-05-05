@@ -5,7 +5,8 @@
   "defaultThinkingLevel": "low",
   "packages": [
     "npm:pi-subagents",
-    "npm:taskplane"
+    "npm:taskplane",
+    "npm:pi-web-access"
   ],
   "subagents": {
     "agentOverrides": {
