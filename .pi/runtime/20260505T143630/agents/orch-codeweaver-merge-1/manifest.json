@@ -1,0 +1,14 @@
+{
+  "batchId": "20260505T143630",
+  "agentId": "orch-codeweaver-merge-1",
+  "role": "merger",
+  "laneNumber": null,
+  "taskId": null,
+  "repoId": "default",
+  "pid": 1213003,
+  "parentPid": 1212906,
+  "startedAt": 1777962990612,
+  "status": "killed",
+  "cwd": "/home/codeweaver/.pi/agent/.worktrees/codeweaver-20260505T143630/merge",
+  "packet": null
+}

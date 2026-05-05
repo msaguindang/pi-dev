@@ -1,0 +1,22 @@
+{
+  "exitCode": 143,
+  "exitSignal": null,
+  "tokens": {
+    "input": 14241,
+    "output": 618,
+    "cacheRead": 0,
+    "cacheWrite": 0
+  },
+  "cost": 0.035898,
+  "toolCalls": 3,
+  "retries": 0,
+  "compactions": 0,
+  "durationSec": 14,
+  "lastToolCall": "write: {\n  \"status\": \"SUCCESS\",\n  \"source_branch\": \"task/codeweaver-lane-1-20260505T143630\",\n  \"target_branch\": \"orch/codeweaver-20260505T143630\",\n  \"merge_commit\": \"8db9970ebe14ea04a1b6e053cefbdeba036652dd\",\n  \"conflicts\": [],\n  \"verification\": {\n    \"ran\": false,\n    \"passed\": true,\n    \"output\": \"\"\n  }\n",
+  "error": null,
+  "contextUsage": {
+    "tokens": 4660,
+    "contextWindow": 1048576,
+    "percent": 0.4444122314453125
+  }
+}

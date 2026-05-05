@@ -1,0 +1,5 @@
+{"type":"session","version":3,"id":"019df6f3-1e3a-74dd-b5a2-6f1152bc62d5","timestamp":"2026-05-05T07:03:41.371Z","cwd":"/home/codeweaver/.agents"}
+{"type":"model_change","id":"a4e70601","parentId":null,"timestamp":"2026-05-05T07:03:41.522Z","provider":"anthropic","modelId":"claude-sonnet-4-6"}
+{"type":"thinking_level_change","id":"e881c422","parentId":"a4e70601","timestamp":"2026-05-05T07:03:41.522Z","thinkingLevel":"low"}
+{"type":"message","id":"5db5b463","parentId":"e881c422","timestamp":"2026-05-05T07:03:41.532Z","message":{"role":"user","content":[{"type":"text","text":"hello"}],"timestamp":1777964621531}}
+{"type":"message","id":"487a0021","parentId":"5db5b463","timestamp":"2026-05-05T07:03:43.295Z","message":{"role":"assistant","content":[{"type":"text","text":"Hello! How can I help you today?"}],"api":"anthropic-messages","provider":"anthropic","model":"claude-sonnet-4-6","usage":{"input":3,"output":12,"cacheRead":0,"cacheWrite":17564,"totalTokens":17579,"cost":{"input":0.000009,"output":0.00018,"cacheRead":0,"cacheWrite":0.065865,"total":0.066054}},"stopReason":"stop","timestamp":1777964621552,"responseId":"msg_01GeMjqUxKCpm6xHGNtkBbLc"}}

@@ -1,0 +1,16 @@
+{
+  "opId": "codeweaver",
+  "batchId": "20260505T143630",
+  "waveIndex": 1,
+  "laneNumber": 1,
+  "repoId": null,
+  "baseHEAD": "5145337f289c00a557608e331c5f64972ac9854d",
+  "laneHEAD": "8db9970ebe14ea04a1b6e053cefbdeba036652dd",
+  "mergedHEAD": "8db9970ebe14ea04a1b6e053cefbdeba036652dd",
+  "status": "committed",
+  "rollbackAttempted": false,
+  "rollbackResult": null,
+  "recoveryCommands": [],
+  "startedAt": "2026-05-05T06:36:30.603Z",
+  "completedAt": "2026-05-05T06:36:44.625Z"
+}

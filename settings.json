@@ -1,0 +1,32 @@
+{
+  "lastChangelogVersion": "0.73.0",
+  "defaultProvider": "google",
+  "defaultModel": "gemini-flash-latest",
+  "defaultThinkingLevel": "low",
+  "packages": [
+    "npm:pi-subagents",
+    "npm:taskplane"
+  ],
+  "subagents": {
+    "agentOverrides": {
+      "scout": {
+        "model": "google/gemini-3.1-pro-preview-customtools",
+        "thinking": "high"
+      },
+      "reviewer": {
+        "model": "google/gemini-3.1-pro-preview-customtools",
+        "thinking": "high",
+        "systemPrompt": "\n\n## Caveman Mode (Always On)\nTerse like caveman. Technical substance exact. Only fluff die.\nDrop: articles, filler (just/really/basically), pleasantries, hedging.\nFragments OK. Short synonyms. Code unchanged.\nPattern: [thing] [action] [reason]. [next step].\nACTIVE EVERY RESPONSE. No revert after many turns. No filler drift."
+      },
+      "oracle": {
+        "model": "google/gemini-3.1-pro-preview-customtools",
+        "thinking": "high"
+      },
+      "planner": {
+        "model": "google/gemini-3.1-pro-preview-customtools",
+        "thinking": "high"
+      }
+    }
+  },
+  "steeringMode": "all"
+}

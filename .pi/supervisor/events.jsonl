@@ -1,0 +1,5 @@
+{"timestamp":"2026-05-05T06:36:30.513Z","type":"wave_start","batchId":"20260505T143630","waveIndex":0,"phase":"executing","taskIds":["TP-002"],"laneCount":1}
+{"timestamp":"2026-05-05T06:36:30.582Z","type":"task_complete","batchId":"20260505T143630","waveIndex":0,"phase":"executing","taskId":"TP-002","durationMs":1,"outcome":"succeeded"}
+{"timestamp":"2026-05-05T06:36:30.589Z","type":"merge_start","batchId":"20260505T143630","waveIndex":0,"phase":"merging","laneCount":1}
+{"timestamp":"2026-05-05T06:36:45.142Z","type":"merge_success","batchId":"20260505T143630","waveIndex":0,"phase":"merging","laneCount":1,"durationMs":14551,"totalWaves":1}
+{"timestamp":"2026-05-05T06:36:45.168Z","type":"batch_complete","batchId":"20260505T143630","waveIndex":0,"phase":"completed","succeededTasks":1,"failedTasks":0,"skippedTasks":0,"blockedTasks":0,"batchDurationMs":15103}
