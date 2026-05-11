@@ -13,3 +13,14 @@
 
 # Pi project-local packages (if using pi install -l)
 .pi/npm/
+auth.json
+
+# Pi runtime artifacts (machine-specific, do not commit)
+.pi/diagnostics/
+.pi/mailbox/
+.pi/runtime/
+.pi/supervisor/
+.pi/telemetry/
+sessions/
+plan_output.txt
+run-history.jsonl

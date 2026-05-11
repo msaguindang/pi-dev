@@ -1,12 +1,18 @@
 {
   "lastChangelogVersion": "0.73.0",
   "defaultProvider": "google",
-  "defaultModel": "gemini-flash-latest",
-  "defaultThinkingLevel": "low",
+  "defaultModel": "gemini-3.1-pro-preview-customtools",
+  "defaultThinkingLevel": "high",
   "packages": [
-    "npm:pi-subagents",
-    "npm:taskplane",
-    "npm:pi-web-access"
+    {
+      "source": "npm:pi-subagents",
+      "prompts": [
+        "-prompts/parallel-research.md",
+        "-prompts/parallel-review.md"
+      ]
+    },
+    "npm:pi-web-access",
+    "npm:pi-markdown-preview"
   ],
   "subagents": {
     "agentOverrides": {
@@ -16,27 +22,31 @@
       },
       "reviewer": {
         "model": "google/gemini-3.1-pro-preview-customtools",
-        "thinking": "high",
-        "systemPrompt": "\n\n## Caveman Mode (Always On)\nTerse like caveman. Technical substance exact. Only fluff die.\nDrop: articles, filler (just/really/basically), pleasantries, hedging.\nFragments OK. Short synonyms. Code unchanged.\nPattern: [thing] [action] [reason]. [next step].\nACTIVE EVERY RESPONSE. No revert after many turns. No filler drift."
-      },
-      "oracle": {
-        "model": "google/gemini-3.1-pro-preview-customtools",
         "thinking": "high"
       },
       "planner": {
         "model": "google/gemini-3.1-pro-preview-customtools",
         "thinking": "high"
-      },
-      "data-analyst": {
-        "model": "anthropic/claude-sonnet-4-6"
-      },
-      "doc-writer": {
-        "model": "anthropic/claude-haiku-4-5"
-      },
-      "system-architect": {
-        "model": "anthropic/claude-sonnet-4-6"
       }
     }
   },
-  "steeringMode": "all"
+  "extensions": [
+    "-extensions/guardrails.ts",
+    "-extensions/memory-inject.ts"
+  ],
+  "steeringMode": "all",
+  "theme": "tokyo-night",
+  "themes": [
+    "-themes/tokyo-night.json",
+    "-themes/synthwave.json",
+    "-themes/rose-pine.json",
+    "-themes/ocean-breeze.json",
+    "-themes/nord.json",
+    "-themes/midnight-ocean.json",
+    "-themes/gruvbox.json",
+    "-themes/everforest.json",
+    "-themes/dracula.json",
+    "-themes/cyberpunk.json",
+    "-themes/catppuccin-mocha.json"
+  ]
 }
