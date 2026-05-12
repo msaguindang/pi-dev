@@ -11,12 +11,12 @@ Portable Pi coding agent setup. Two repos required.
 
 ### 1. Clone agent context vault
 ```bash
-git clone <agents-repo-url> ~/.agents
+git clone git@github.com:msaguindang/dot-agents.git ~/.agents
 ```
 
 ### 2. Clone Pi agent config
 ```bash
-git clone <pi-agent-repo-url> ~/.pi/agent
+git clone git@github.com:msaguindang/pi-dev.git ~/.pi/agent
 ```
 
 ### 3. Authenticate
@@ -39,8 +39,12 @@ pi "hello"   # should respond in caveman mode
 ├── SETUP.md           # this file
 ├── settings.json      # packages, model config, themes
 └── agents/
+    ├── coder.md       # implementation tasks
+    ├── reviewer.md    # hostile code review
+    ├── qa.md          # spec + bug hunt (two-gate)
+    ├── planner.md     # design before code
+    ├── devops.md      # deploy, infra, RPi ops
     ├── researcher.md  # web research + doc lookup
-    ├── my-coder.md    # implementation tasks
     └── admin.md       # writing + admin tasks
 ```
 
