@@ -16,7 +16,7 @@ git clone git@github.com:msaguindang/dot-agents.git ~/.agents
 
 ### 2. Clone Pi agent config
 ```bash
-git clone git@github.com:msaguindang/pi-dev.git ~/.pi/agent
+git clone git@github.com:msaguindang/dot-pi.git ~/.pi/agent
 ```
 
 ### 3. Authenticate
