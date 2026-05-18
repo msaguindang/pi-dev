@@ -1,22 +1,23 @@
-# Pi Agent Setup
+# Pi Agent Setup — Adjutant / Foundry
 
-Portable Pi coding agent setup. Two repos required.
+Portable Pi coding agent. Two repos required — one generic (this), one personal.
 
 ## Prerequisites
 - Node.js 18+
-- Pi CLI: `npm install -g @mariozechner/pi`
+- Pi CLI: `npm install -g @earendil-works/pi-coding-agent`
 - Git
 
 ## Setup (New Machine)
 
-### 1. Clone agent context vault
-```bash
-git clone git@github.com:msaguindang/dot-agents.git ~/.agents
-```
-
-### 2. Clone Pi agent config
+### 1. Clone this repo
 ```bash
 git clone git@github.com:msaguindang/dot-pi.git ~/.pi/agent
+```
+
+### 2. Create your personal context vault
+```bash
+git clone git@github.com:msaguindang/dot-agents.git ~/.agents
+# or fork it and replace context/ with your own
 ```
 
 ### 3. Authenticate
@@ -27,32 +28,57 @@ pi auth login
 ### 4. Verify
 ```bash
 pi --version
-pi "hello"   # should respond in caveman mode
+pi "hello"
 ```
 
 ## Structure
 
 ```
-~/.pi/agent/
-├── AGENTS.md          # identity — reads from ~/.agents via @-includes
-├── APPEND_SYSTEM.md   # behavioral rules + caveman mode
-├── SETUP.md           # this file
-├── settings.json      # packages, model config, themes
-└── agents/
-    ├── coder.md       # implementation tasks
-    ├── reviewer.md    # hostile code review
-    ├── qa.md          # spec + bug hunt (two-gate)
-    ├── planner.md     # design before code
-    ├── devops.md      # deploy, infra, RPi ops
-    ├── researcher.md  # web research + doc lookup
-    └── admin.md       # writing + admin tasks
+~/.pi/agent/                    ← this repo (generic, shareable)
+├── AGENTS.md                   # bridges into ~/.agents via @-includes
+├── APPEND_SYSTEM.md            # prompt routing classifier (generic)
+├── SETUP.md                    # this file
+├── settings.json               # packages, model config, themes
+├── agents/                     # personal agents (gitignored — add your own)
+├── extensions/
+│   ├── first-run.ts            # onboarding wizard
+│   ├── guardrails.ts           # safety rules
+│   └── memory-inject.ts        # injects lessons from ~/.agents/state/lessons.jsonl
+└── themes/                     # 11 themes
+
+~/.agents/                      ← personal vault (your own repo)
+├── context/
+│   ├── identity.md             # who you are, communication style, behavioral rules
+│   ├── environment.md          # machine paths, aliases, active technologies
+│   └── long-term.md            # domain knowledge, project state, decision log
+├── skills/                     # personal + shared skills (pi + other harnesses)
+└── standards/                  # code conventions
 ```
 
-## Customization for New Users
-- Update `~/.agents/context/identity.md` with your own role and principles
-- Update `~/.agents/context/environment.md` with your machine paths and aliases
-- Update `~/.agents/context/long-term.md` with your domain/project knowledge
-- Keep `~/.pi/agent/` unchanged — it's generic
+## Agents
+
+### Package agents (npm:pi-subagents) — included automatically
+| Agent | Role |
+|---|---|
+| `scout` | Fast codebase recon |
+| `context-builder` | Deep analysis + meta-prompt for planning |
+| `oracle` | Decision-consistency, drift protection |
+| `planner` | Implementation planning |
+| `researcher` | Web research + doc lookup |
+| `reviewer` | Code, plan, and PR review |
+| `worker` | Implementation with supervisor escalation |
+| `delegate` | Lightweight, inherits parent model |
+
+### Personal agents — add to `agents/` (gitignored)
+Create `~/.pi/agent/agents/<name>.md` for domain-specific agents.
+Examples from this setup: `devops.md` (RPi/infra), `qa.md` (spec + bug hunt), `admin.md` (writing + vault ops).
+
+## Customization
+- `~/.agents/context/identity.md` — your role, communication style, behavioral rules
+- `~/.agents/context/environment.md` — your machine paths, aliases, tools
+- `~/.agents/context/long-term.md` — domain knowledge, project context
+- `~/.pi/agent/agents/` — your personal agents (gitignored, won't affect others)
 
 ## Sensitive Files (Never Commit)
-- `~/.pi/agent/auth.json` — API credentials, excluded via `.gitignore`
+- `~/.pi/agent/auth.json` — API credentials
+- `~/.pi/agent/agents/*.md` — personal agents (gitignored by default)
