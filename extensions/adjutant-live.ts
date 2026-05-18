@@ -175,7 +175,7 @@ function clearState(state: SubState, signal: "SIGTERM" | "SIGKILL" = "SIGTERM"):
 export default function (pi: ExtensionAPI) {
 	const agents = new Map<number, SubState>();
 	let nextId = 1;
-	let widgetCtx: Parameters<Parameters<ExtensionAPI["on"]>[1]>[1] | null = null;
+	let widgetCtx: any = null;
 
 	function updateWidget(): void {
 		if (!widgetCtx?.hasUI) return;
@@ -184,10 +184,9 @@ export default function (pi: ExtensionAPI) {
 			widgetCtx.ui.setWidget(WIDGET_KEY, undefined);
 			return;
 		}
-		widgetCtx.ui.setWidget(WIDGET_KEY, (_tui, _theme) => ({
-			render:     (w: number) => buildLiveGrid(states, w),
-			invalidate: () => {},
-		}));
+		// String array form forces an immediate re-render on every call
+		const width = (process.stdout.columns || 120) - 2;
+		widgetCtx.ui.setWidget(WIDGET_KEY, buildLiveGrid(states, width));
 	}
 
 	// ── Subprocess spawner ────────────────────────────────────────────────
@@ -294,6 +293,12 @@ export default function (pi: ExtensionAPI) {
 				state.lastLine = err.message;
 				clearState(state);
 				updateWidget();
+				if (widgetCtx?.hasUI) {
+					widgetCtx.ui.notify(
+						`live_agents: spawn failed [${state.agentName}] — ${err.message}`,
+						"error",
+					);
+				}
 				resolve();
 			});
 		});
