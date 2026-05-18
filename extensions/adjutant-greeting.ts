@@ -39,60 +39,51 @@ const TIER3_AGENTS: AgentEntry[] = [
 
 // ── Agent Color Palette ──────────────────────────────────────────────────
 
-const AGENT_COLORS: Record<string, [number, number, number]> = {
+const AGENT_COLORS: Record<string, { bg: string; br: string }> = {
 	// Pipeline
-	"scout":           [0,   180, 220],
-	"context-builder": [80,  190, 80 ],
-	"oracle":          [220, 100, 60 ],
-	"planner":         [160, 80,  220],
-	"researcher":      [200, 170, 40 ],
-	"reviewer":        [40,  190, 170],
-	"worker":          [60,  120, 230],
-	"delegate":        [200, 80,  180],
+	"scout":           { bg: "\x1b[48;2;12;40;65m",  br: "\x1b[38;2;0;180;220m"  },
+	"context-builder": { bg: "\x1b[48;2;18;55;25m",  br: "\x1b[38;2;80;190;80m"  },
+	"oracle":          { bg: "\x1b[48;2;65;30;18m",  br: "\x1b[38;2;220;100;60m" },
+	"planner":         { bg: "\x1b[48;2;45;20;70m",  br: "\x1b[38;2;160;80;220m" },
+	"researcher":      { bg: "\x1b[48;2;65;52;10m",  br: "\x1b[38;2;200;170;40m" },
+	"reviewer":        { bg: "\x1b[48;2;10;55;52m",  br: "\x1b[38;2;40;190;170m" },
+	"worker":          { bg: "\x1b[48;2;18;35;75m",  br: "\x1b[38;2;60;120;230m" },
+	"delegate":        { bg: "\x1b[48;2;65;20;58m",  br: "\x1b[38;2;200;80;180m" },
 	// Domain
-	"devops":          [200, 60,  80 ],
-	"qa":              [100, 80,  210],
-	"admin":           [130, 170, 60 ],
+	"devops":          { bg: "\x1b[48;2;65;18;25m",  br: "\x1b[38;2;200;60;80m"  },
+	"qa":              { bg: "\x1b[48;2;30;22;70m",  br: "\x1b[38;2;100;80;210m" },
+	"admin":           { bg: "\x1b[48;2;38;52;15m",  br: "\x1b[38;2;130;170;60m" },
 };
+const DEFAULT_COLORS = { bg: "\x1b[48;2;30;30;30m", br: "\x1b[38;2;120;120;120m" };
+const FG_RESET = "\x1b[39m";
+const BG_RESET = "\x1b[49m";
 
-const DEFAULT_COLOR: [number, number, number] = [120, 120, 120];
+function renderCard(name: string, subtitle: string, cardWidth: number): string[] {
+	const { bg, br } = AGENT_COLORS[name] ?? DEFAULT_COLORS;
+	const inner = cardWidth - 2;
 
-function rgb(r: number, g: number, b: number, text: string): string {
-	return `\x1b[38;2;${r};${g};${b}m${text}\x1b[39m`;
-}
+	const bord = (s: string) => bg + br + s + BG_RESET + FG_RESET;
+	const border = (content: string, visLen: number) => {
+		const pad = " ".repeat(Math.max(0, inner - visLen));
+		return bord("\u2502") + bg + content + bg + pad + BG_RESET + bord("\u2502");
+	};
 
-function bold(text: string): string {
-	return `\x1b[1m${text}\x1b[22m`;
-}
+	const nameRaw = name.length > inner - 2 ? name.slice(0, inner - 4) + "..." : name;
+	const subRaw  = subtitle.length > inner - 2 ? subtitle.slice(0, inner - 4) + "..." : subtitle;
 
-function dim(text: string): string {
-	return `\x1b[2m${text}\x1b[22m`;
-}
+	const nameLine   = border(" " + br + "\x1b[1m" + nameRaw + "\x1b[22m" + FG_RESET, 1 + nameRaw.length);
+	const statusLine = border(" " + "\x1b[2m" + "\u25cb idle" + "\x1b[22m", 7);
+	const subLine    = border(" " + "\x1b[2m" + subRaw + "\x1b[22m", 1 + subRaw.length);
+	const ulLine     = border(" " + "\x1b[2m" + "_" + "\x1b[22m", 2);
 
-function renderCard(name: string, subtitle: string, status: string, cardWidth: number): string[] {
-	const [r, g, b] = AGENT_COLORS[name] ?? DEFAULT_COLOR;
-	const color = (t: string) => rgb(r, g, b, t);
-	const inner = cardWidth - 2; // subtract left+right border chars
-
-	const pad = (text: string, visLen: number) =>
-		text + " ".repeat(Math.max(0, inner - visLen));
-
-	const topBot = color("\u250c" + "\u2500".repeat(inner) + "\u2510");
-	const botLine = color("\u2514" + "\u2500".repeat(inner) + "\u2518");
-	const border = (content: string, visLen: number) =>
-		color("\u2502") + content + " ".repeat(Math.max(0, inner - visLen)) + color("\u2502");
-
-	const nameText = " " + name;
-	const nameLine = border(color(bold(nameText)), 1 + name.length);
-
-	const statusText = " " + status;
-	const statusLine = border(dim(statusText), 1 + status.length);
-
-	const descRaw = " " + (subtitle.length > inner - 2 ? subtitle.slice(0, inner - 4) + "..." : subtitle);
-	const descLine = border(dim(descRaw), descRaw.length);
-	const ulText = " _";
-	const ulLine = border(dim(ulText), 2);
-	return [topBot, nameLine, statusLine, descLine, ulLine, botLine];
+	return [
+		bord("\u250c" + "\u2500".repeat(inner) + "\u2510"),
+		nameLine,
+		statusLine,
+		subLine,
+		ulLine,
+		bord("\u2514" + "\u2500".repeat(inner) + "\u2518"),
+	];
 }
 
 const GRID_KEY = "adjutant-agents";
@@ -101,32 +92,58 @@ const CARD_GAP = 2;
 
 function buildAgentGrid(width: number): string[] {
 	const cardWidth = Math.floor((width - CARD_GAP * (COLS - 1)) / COLS);
-	if (cardWidth < 14) return [dim(" terminal too narrow ")];
+	if (cardWidth < 14) return ["\x1b[2m terminal too narrow \x1b[22m"];
 
-	const allAgents: Array<{ name: string; subtitle: string; group: string }> = [
-		...TIER2_AGENTS.map(a => ({ ...a, group: "pipeline" })),
-		...TIER3_AGENTS.map(a => ({ ...a, group: "domain" })),
-	];
+	const lines: string[] = [];
 
-	const lines: string[] = [""];
-
-	for (let i = 0; i < allAgents.length; i += COLS) {
-		const row = allAgents.slice(i, i + COLS);
-		// Add group label when switching from pipeline to domain
-		if (i === 0) lines.push(dim("  Pipeline Agents"));
-		if (i === TIER2_AGENTS.length) lines.push(dim("  Domain Agents"));
-		const cards = row.map(a => renderCard(a.name, a.subtitle, "○ idle", cardWidth));
-		// pad to full COLS if last row is short
-		while (cards.length < COLS) cards.push(Array(6).fill(" ".repeat(cardWidth)));
-
-		const cardHeight = cards[0].length;
-		for (let line = 0; line < cardHeight; line++) {
-			lines.push(" " + cards.map(c => c[line] ?? " ".repeat(cardWidth)).join(" ".repeat(CARD_GAP)));
-		}
+	const addGroup = (label: string, agents: AgentEntry[]) => {
 		lines.push("");
-	}
+		lines.push(" \x1b[2m" + label + "\x1b[22m");
+		lines.push("");
+		for (let i = 0; i < agents.length; i += COLS) {
+			const row   = agents.slice(i, i + COLS);
+			const cards = row.map(a => renderCard(a.name, a.subtitle, cardWidth));
+			while (cards.length < COLS) cards.push(Array(6).fill(" ".repeat(cardWidth)));
+			const h = cards[0].length;
+			for (let l = 0; l < h; l++) {
+				lines.push(" " + cards.map(c => c[l] ?? "").join(" ".repeat(CARD_GAP)));
+			}
+			lines.push("");
+		}
+	};
 
+	addGroup("Pipeline Agents", TIER2_AGENTS);
+	addGroup("Domain Agents",   TIER3_AGENTS);
 	return lines;
+}
+
+function buildAgentGridChat(termWidth: number): string[] {
+	const cols = 3;
+	const gap  = 1;
+	const cardWidth = Math.floor((termWidth - gap * (cols - 1)) / cols);
+	if (cardWidth < 14) return ["\x1b[2m terminal too narrow \x1b[22m"];
+
+	const chatLines: string[] = [];
+
+	const addGroupChat = (label: string, agents: AgentEntry[]) => {
+		chatLines.push("");
+		chatLines.push(" \x1b[2m" + label + "\x1b[22m");
+		chatLines.push("");
+		for (let i = 0; i < agents.length; i += cols) {
+			const row   = agents.slice(i, i + cols);
+			const cards = row.map(a => renderCard(a.name, a.subtitle, cardWidth));
+			while (cards.length < cols) cards.push(Array(6).fill(" ".repeat(cardWidth)));
+			const h = cards[0].length;
+			for (let l = 0; l < h; l++) {
+				chatLines.push(" " + cards.map(c => c[l] ?? "").join(" ".repeat(gap)));
+			}
+			chatLines.push("");
+		}
+	};
+
+	addGroupChat("Pipeline Agents", TIER2_AGENTS);
+	addGroupChat("Domain Agents",   TIER3_AGENTS);
+	return chatLines;
 }
 
 // ── Layout Constants ───────────────────────────────────────────────────────
@@ -505,17 +522,16 @@ export default function (pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "show_agents",
 		label: "Show Agents",
-		description: "Display the Adjutant agent roster as a colored card grid widget above the editor.",
+		description: "Display the Adjutant agent roster as a colored card grid.",
 		parameters: Type.Object({}),
 		execute: async (_callId, _params, _signal, _onUpdate, ctx) => {
+			const termWidth = (process.stdout.columns || 120);
+			const lines = buildAgentGridChat(termWidth);
 			if (ctx.hasUI) {
-				ctx.ui.setWidget(GRID_KEY, (_tui, _theme) => ({
-					render: (w: number) => buildAgentGrid(w),
-					invalidate: () => {},
-				}));
+				ctx.ui.notify(lines.join("\n"), "info");
 			}
 			return {
-				content: [{ type: "text", text: "Agent grid displayed above the editor." }],
+				content: [{ type: "text", text: "Agent roster displayed." }],
 			};
 		},
 	});
