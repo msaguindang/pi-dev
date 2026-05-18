@@ -1,17 +1,23 @@
 /**
  * Adjutant Chain Visualizer
  *
- * Renders a widget above the editor showing agent flow whenever
- * the subagent tool is invoked — chain, parallel, or single.
+ * Renders a neon-bordered card grid above the editor showing agent flow
+ * whenever the subagent tool is invoked — chain, parallel, or single.
  *
  * Chain:    ◆ ADJUTANT CHAIN
- *           [ scout ] ──► [ planner ] ──► [ worker ]
+ *           ╭──────────╮        ╭──────────╮        ╭──────────╮
+ *           │  scout   │  ──▶   │ planner  │  ──▶   │  worker  │
+ *           ╰──────────╯        ╰──────────╯        ╰──────────╯
  *
  * Parallel: ◆ ADJUTANT PARALLEL
- *           [ scout ]  [ researcher ]  [ context-builder ]
+ *           ╭────────────────╮  ╭────────────────╮  ╭────────────────╮
+ *           │    scout       │  │   researcher   │  │ context-builder│
+ *           ╰────────────────╯  ╰────────────────╯  ╰────────────────╯
  *
  * Single:   ◆ ADJUTANT
- *           [ devops ]
+ *           ╭──────────────────╮
+ *           │      devops      │
+ *           ╰──────────────────╯
  *
  * Clears on tool_result.
  */
@@ -43,78 +49,168 @@ interface SubagentInput {
 	tasks?: ParallelStep[];
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Card Builder ────────────────────────────────────────────────────────────
 
-function card(name: string, colorFn: (s: string) => string): string {
-	return colorFn("[ ") + colorFn(name) + colorFn(" ]");
+function card(
+	name: string,
+	width: number,
+	colorFn: (s: string) => string,
+): string[] {
+	const innerWidth = width - 4; // subtract 2 for ╭/╮ and 2 for spaces
+	const padded = name.padStart(Math.floor((innerWidth + name.length) / 2), " ")
+		.padEnd(width - 4, " ");
+
+	return [
+		colorFn("╭" + "─".repeat(width - 2) + "╮"),
+		colorFn("║ " + padded + " ║"),
+		colorFn("╰" + "─".repeat(width - 2) + "╯"),
+	];
 }
 
-// ── Extension ──────────────────────────────────────────────────────────────
+// ── Chain Card ───────────────────────────────────────────────────────────────
+// A chain card uses a narrower width derived from the agent name, 3 lines tall.
+
+function chainCard(
+	name: string,
+	colorFn: (s: string) => string,
+): string[] {
+	const width = Math.max(name.length + 4, 12);
+	return card(name, width, colorFn);
+}
+
+// ── Parallel Card ─────────────────────────────────────────────────────────────
+// A parallel card is wider (20 cols), 3 lines tall, always accent-colored.
+
+function parallelCard(
+	name: string,
+	accentFn: (s: string) => string,
+): string[] {
+	return card(name, 20, accentFn);
+}
+
+// ── Single Card ──────────────────────────────────────────────────────────────
+
+function singleCard(
+	name: string,
+	accentFn: (s: string) => string,
+): string[] {
+	return card(name, Math.max(name.length + 6, 20), accentFn);
+}
+
+// ── Line Joiner ──────────────────────────────────────────────────────────────
+// Joins card rows horizontally. Cards is [topLines[], topLines[], ...]
+// each card is 3 lines. Returns array of joined strings.
+
+function joinCards(
+	cards: string[][][],
+	sep: string,
+): string[] {
+	const lines: string[] = [];
+	for (let row = 0; row < 3; row++) {
+		const parts = cards.map((c) => c[row] || "");
+		lines.push(parts.join(sep));
+	}
+	return lines;
+}
+
+// ── Extension ────────────────────────────────────────────────────────────────
 
 export default function (pi: ExtensionAPI) {
-	pi.on("tool_call", (event, ctx) => {
+	pi.on("tool_call", (event, _ctx) => {
 		if (event.toolName !== "subagent") return undefined;
-		if (!ctx.hasUI) return undefined;
+		if (!_ctx.hasUI) return undefined;
 
 		const input = event.input as SubagentInput;
-		const t = ctx.ui.theme;
-		const lines: string[] = [];
+		const t = _ctx.ui.theme;
+		const accent = (s: string) => t.fg("accent", s);
+		const muted = (s: string) => t.fg("muted", s);
+		const dim = (s: string) => t.fg("dim", s);
 
 		// ── Chain mode ────────────────────────────────────────────────────
 		if (input.chain && input.chain.length > 0) {
-			lines.push(t.fg("dim", "  ◆ ADJUTANT CHAIN"));
+			const title = dim("  ◆ ADJUTANT CHAIN");
+			const cards: string[][][] = [];
 
-			const cards: string[] = [];
 			for (let i = 0; i < input.chain.length; i++) {
 				const step = input.chain[i]!;
-				// Step is active if it's the first step
-				const isActive = i === 0;
-				const colorFn = isActive
-					? (s: string) => t.fg("accent", s)
-					: (s: string) => t.fg("muted", s);
-
 				if (step.agent) {
-					cards.push(card(step.agent, colorFn));
+					const fn = i === 0 ? accent : muted;
+					cards.push(chainCard(step.agent, fn));
 				} else if (step.parallel && step.parallel.length > 0) {
-					// Parallel group within chain — wrap in braces
-					const inner = step.parallel
+					// Parallel group rendered as a single wider card with names joined by /
+					const names = step.parallel
 						.filter((p) => p.agent)
-						.map((p) => card(p.agent!, colorFn))
-						.join(t.fg("dim", "  "));
-					cards.push(t.fg("dim", "{ ") + inner + t.fg("dim", " }"));
+						.map((p) => p.agent!)
+						.join(" / ");
+					const fn = i === 0 ? accent : muted;
+					cards.push([
+						dim("╭" + "─".repeat(Math.max(names.length + 4, 14) - 2) + "╮"),
+						dim("║ ") + fn(names.padStart(Math.floor((Math.max(names.length + 4, 14) + names.length) / 2), " ").padEnd(Math.max(names.length + 4, 14) - 4, " ")) + dim(" ║"),
+						dim("╰" + "─".repeat(Math.max(names.length + 4, 14) - 2) + "╯"),
+					]);
 				}
 			}
 
-			const arrow = t.fg("dim", " ──► ");
-			lines.push("  " + cards.join(arrow));
+			const arrow = dim("  ──▶  ");
+			const cardLines = joinCards(cards, arrow);
 
-		// ── Parallel mode ─────────────────────────────────────────────────
-		} else if (input.tasks && input.tasks.length > 0) {
-			lines.push(t.fg("dim", "  ◆ ADJUTANT PARALLEL"));
-
-			const cards = input.tasks
-				.filter((task) => task.agent)
-				.map((task) => card(task.agent!, (s) => t.fg("accent", s)));
-
-			lines.push("  " + cards.join("  "));
-
-		// ── Single agent mode ─────────────────────────────────────────────
-		} else if (input.agent) {
-			lines.push(t.fg("dim", "  ◆ ADJUTANT"));
-			lines.push("  " + card(input.agent, (s) => t.fg("accent", s)));
+			_ctx.ui.setWidget(WIDGET_KEY, [
+				"",
+				title,
+				"  " + cardLines[0],
+				"  " + cardLines[1],
+				"  " + cardLines[2],
+				"",
+			]);
+			return undefined;
 		}
 
-		if (lines.length > 0) {
-			// Pad with empty lines for breathing room
-			ctx.ui.setWidget(WIDGET_KEY, ["", ...lines, ""]);
+		// ── Parallel mode ─────────────────────────────────────────────────
+		if (input.tasks && input.tasks.length > 0) {
+			const title = dim("  ◆ ADJUTANT PARALLEL");
+			const cards: string[][][] = [];
+
+			for (const task of input.tasks) {
+				if (task.agent) {
+					cards.push(parallelCard(task.agent, accent));
+				}
+			}
+
+			if (cards.length === 0) return undefined;
+
+			const cardLines = joinCards(cards, "  ");
+			_ctx.ui.setWidget(WIDGET_KEY, [
+				"",
+				title,
+				"  " + cardLines[0],
+				"  " + cardLines[1],
+				"  " + cardLines[2],
+				"",
+			]);
+			return undefined;
+		}
+
+		// ── Single agent mode ─────────────────────────────────────────────
+		if (input.agent) {
+			const title = dim("  ◆ ADJUTANT");
+			const lines = singleCard(input.agent, accent);
+			_ctx.ui.setWidget(WIDGET_KEY, [
+				"",
+				title,
+				"  " + lines[0],
+				"  " + lines[1],
+				"  " + lines[2],
+				"",
+			]);
+			return undefined;
 		}
 
 		return undefined;
 	});
 
-	pi.on("tool_result", (event, ctx) => {
+	pi.on("tool_result", (event, _ctx) => {
 		if (event.toolName !== "subagent") return;
-		if (!ctx.hasUI) return;
-		ctx.ui.setWidget(WIDGET_KEY, undefined);
+		if (!_ctx.hasUI) return;
+		_ctx.ui.setWidget(WIDGET_KEY, undefined);
 	});
 }
