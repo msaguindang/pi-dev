@@ -134,11 +134,14 @@ export default function (pi: ExtensionAPI) {
 				const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "no model";
 				const thinking = pi.getThinkingLevel();
 
-				// Top border: spinner (when working) on left, ADJUTANT label on right
+				// Top border: spinner (when working) on left, session name on right
+				const sessionName = pi.getSessionName();
 				const topLeft = isWorking
 					? thm.fg("accent", ` ${spinnerFrames[spinnerIndex]} `)
 					: "";
-				const topRight = thm.fg("accent", thm.bold(" ADJUTANT "));
+				const topRight = sessionName
+					? thm.fg("accent", ` ${sessionName} `)
+					: "";
 
 				// Bottom border: cwd + branch on left, model · thinking · ctx on right
 				const bottomLeft = thm.fg(
