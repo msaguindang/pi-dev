@@ -10,6 +10,7 @@
  */
 
 import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 // ── Agent Data ────────────────────────────────────────────────────────────
@@ -35,6 +36,98 @@ const TIER3_AGENTS: AgentEntry[] = [
 	{ name: "qa",     subtitle: "spec + bugs"      },
 	{ name: "admin",  subtitle: "writing & vault"  },
 ];
+
+// ── Agent Color Palette ──────────────────────────────────────────────────
+
+const AGENT_COLORS: Record<string, [number, number, number]> = {
+	// Pipeline
+	"scout":           [0,   180, 220],
+	"context-builder": [80,  190, 80 ],
+	"oracle":          [220, 100, 60 ],
+	"planner":         [160, 80,  220],
+	"researcher":      [200, 170, 40 ],
+	"reviewer":        [40,  190, 170],
+	"worker":          [60,  120, 230],
+	"delegate":        [200, 80,  180],
+	// Domain
+	"devops":          [200, 60,  80 ],
+	"qa":              [100, 80,  210],
+	"admin":           [130, 170, 60 ],
+};
+
+const DEFAULT_COLOR: [number, number, number] = [120, 120, 120];
+
+function rgb(r: number, g: number, b: number, text: string): string {
+	return `\x1b[38;2;${r};${g};${b}m${text}\x1b[39m`;
+}
+
+function bold(text: string): string {
+	return `\x1b[1m${text}\x1b[22m`;
+}
+
+function dim(text: string): string {
+	return `\x1b[2m${text}\x1b[22m`;
+}
+
+function renderCard(name: string, subtitle: string, status: string, cardWidth: number): string[] {
+	const [r, g, b] = AGENT_COLORS[name] ?? DEFAULT_COLOR;
+	const color = (t: string) => rgb(r, g, b, t);
+	const inner = cardWidth - 2; // subtract left+right border chars
+
+	const pad = (text: string, visLen: number) =>
+		text + " ".repeat(Math.max(0, inner - visLen));
+
+	const topBot = color("\u250c" + "\u2500".repeat(inner) + "\u2510");
+	const botLine = color("\u2514" + "\u2500".repeat(inner) + "\u2518");
+	const border = (content: string, visLen: number) =>
+		color("\u2502") + content + " ".repeat(Math.max(0, inner - visLen)) + color("\u2502");
+
+	const nameText = " " + name;
+	const nameLine = border(color(bold(nameText)), 1 + name.length);
+
+	const statusText = " " + status;
+	const statusLine = border(dim(statusText), 1 + status.length);
+
+	const descRaw = " " + (subtitle.length > inner - 2 ? subtitle.slice(0, inner - 4) + "..." : subtitle);
+	const descLine = border(dim(descRaw), descRaw.length);
+	const ulText = " _";
+	const ulLine = border(dim(ulText), 2);
+	return [topBot, nameLine, statusLine, descLine, ulLine, botLine];
+}
+
+const GRID_KEY = "adjutant-agents";
+const COLS = 3;
+const CARD_GAP = 2;
+
+function buildAgentGrid(width: number): string[] {
+	const cardWidth = Math.floor((width - CARD_GAP * (COLS - 1)) / COLS);
+	if (cardWidth < 14) return [dim(" terminal too narrow ")];
+
+	const allAgents: Array<{ name: string; subtitle: string; group: string }> = [
+		...TIER2_AGENTS.map(a => ({ ...a, group: "pipeline" })),
+		...TIER3_AGENTS.map(a => ({ ...a, group: "domain" })),
+	];
+
+	const lines: string[] = [""];
+
+	for (let i = 0; i < allAgents.length; i += COLS) {
+		const row = allAgents.slice(i, i + COLS);
+		// Add group label when switching from pipeline to domain
+		if (i === 0) lines.push(dim("  Pipeline Agents"));
+		if (i === TIER2_AGENTS.length) lines.push(dim("  Domain Agents"));
+		const cards = row.map(a => renderCard(a.name, a.subtitle, "○ idle", cardWidth));
+		// pad to full COLS if last row is short
+		while (cards.length < COLS) cards.push(Array(6).fill(" ".repeat(cardWidth)));
+
+		const cardHeight = cards[0].length;
+		for (let line = 0; line < cardHeight; line++) {
+			lines.push(" " + cards.map(c => c[line] ?? " ".repeat(cardWidth)).join(" ".repeat(CARD_GAP)));
+		}
+		lines.push("");
+	}
+
+	return lines;
+}
 
 // ── Layout Constants ───────────────────────────────────────────────────────
 
@@ -406,5 +499,45 @@ export default function (pi: ExtensionAPI) {
 	pi.on("agent_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
 		ctx.ui.setWidget(WIDGET_KEY, undefined);
+	});
+
+	// ── show_agents tool (callable by the agent) ──────────────────────────
+	pi.registerTool({
+		name: "show_agents",
+		label: "Show Agents",
+		description: "Display the Adjutant agent roster as a colored card grid widget above the editor.",
+		parameters: Type.Object({}),
+		execute: async (_callId, _params, _signal, _onUpdate, ctx) => {
+			if (ctx.hasUI) {
+				ctx.ui.setWidget(GRID_KEY, (_tui, _theme) => ({
+					render: (w: number) => buildAgentGrid(w),
+					invalidate: () => {},
+				}));
+			}
+			return {
+				content: [{ type: "text", text: "Agent grid displayed above the editor." }],
+			};
+		},
+	});
+
+	// ── /agents command (human shortcut) ─────────────────────────────────
+	pi.registerCommand("agents", {
+		description: "Show the Adjutant agent roster card grid",
+		handler: async (_args, ctx) => {
+			if (!ctx.hasUI) return;
+			ctx.ui.setWidget(GRID_KEY, (_tui, _theme) => ({
+				render: (w: number) => buildAgentGrid(w),
+				invalidate: () => {},
+			}));
+		},
+	});
+
+	// ── /agents-hide command ──────────────────────────────────────────────
+	pi.registerCommand("agents-hide", {
+		description: "Hide the agent roster card grid",
+		handler: async (_args, ctx) => {
+			if (!ctx.hasUI) return;
+			ctx.ui.setWidget(GRID_KEY, undefined);
+		},
 	});
 }
