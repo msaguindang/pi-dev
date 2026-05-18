@@ -10,7 +10,7 @@
  */
 
 import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
-import { matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 // ── Agent Data ────────────────────────────────────────────────────────────
 
@@ -68,15 +68,14 @@ function rowWidth(nCards: number): number {
 	return nCards * CARD_W + (nCards - 1) * GAP;
 }
 
-// ── GreetingOverlay Component ───────────────────────────────────────────
+// ── GreetingWidget Component ────────────────────────────────────────────
 
-class GreetingOverlay {
+class GreetingWidget {
 	private cachedLines?: string[];
 	private cachedWidth?: number;
 
 	constructor(
 		private readonly theme: Theme,
-		private readonly done: (val: undefined) => void,
 	) {}
 
 	// Returns the grid width so caller knows where to anchor.
@@ -367,11 +366,6 @@ class GreetingOverlay {
 
 		// Footer
 		fullLines.push("");
-		fullLines.push(truncateToWidth(
-			th.fg("dim", "press any key to continue"),
-			this.gridWidth(),
-		));
-		fullLines.push("");
 
 		return fullLines;
 	}
@@ -390,27 +384,27 @@ class GreetingOverlay {
 		this.cachedLines = undefined;
 	}
 
-	handleInput(data: string): void {
-		// Dismiss on any keypress
-		this.done(undefined);
-	}
 }
 
 // ── Extension ───────────────────────────────────────────────────────────────
+
+const WIDGET_KEY = "adjutant-greeting";
 
 export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
 
-		ctx.ui
-			.custom<undefined>((_tui, theme, _kb, done) => new GreetingOverlay(theme, done), {
-				overlay: true,
-				overlayOptions: {
-					anchor: "center",
-					width: "75%",
-					maxHeight: "90%",
-				},
-			})
-			.catch(() => {});
+		ctx.ui.setWidget(WIDGET_KEY, (_tui, theme) => {
+			const widget = new GreetingWidget(theme);
+			return {
+				render: (w: number) => widget.render(w),
+				invalidate: () => widget.invalidate(),
+			};
+		});
+	});
+
+	pi.on("agent_start", (_event, ctx) => {
+		if (!ctx.hasUI) return;
+		ctx.ui.setWidget(WIDGET_KEY, undefined);
 	});
 }
