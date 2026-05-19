@@ -278,6 +278,23 @@ export default function (pi: ExtensionAPI) {
 		ctx.ui.setWidget(WIDGET_KEY, undefined);
 	});
 
+	pi.on("agent_end", (_event, ctx) => {
+		if (!ctx.hasUI) return;
+
+		ctx.ui.setWidget(WIDGET_KEY, (tui, theme) => {
+			const widget = new GreetingWidget(theme);
+
+			// Tick every second so the clock stays live
+			if (clockInterval) clearInterval(clockInterval);
+			clockInterval = setInterval(() => tui.requestRender(), 1000);
+
+			return {
+				render: (w: number) => widget.render(w),
+				invalidate: () => widget.invalidate(),
+			};
+		});
+	});
+
 	// ── show_agents tool (callable by the agent) ──────────────────────────
 	pi.registerTool({
 		name: "show_agents",
