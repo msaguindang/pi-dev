@@ -123,18 +123,19 @@ const GAP  = 1;
 const CARD_HEIGHT = 6;
 
 function buildLiveGrid(states: SubState[], width: number): string[] {
-	const cardWidth = Math.floor((width - GAP * (COLS - 1)) / COLS);
+	const actualCols = Math.min(COLS, states.length);
+	const cardWidth = Math.floor((width - GAP * (actualCols - 1)) / actualCols);
 	if (cardWidth < 14) return ["\x1b[2m terminal too narrow \x1b[22m"];
 
 	const lines: string[] = [""];
 	for (let i = 0; i < states.length; i += COLS) {
 		const row   = states.slice(i, i + COLS);
 		const cards = row.map(s => renderLiveCard(s, cardWidth));
-		while (cards.length < COLS) {
+		while (cards.length < actualCols) {
 			cards.push(Array(CARD_HEIGHT).fill(" ".repeat(cardWidth)));
 		}
 		for (let l = 0; l < CARD_HEIGHT; l++) {
-			lines.push(" " + cards.map(c => c[l] ?? "").join(" ".repeat(GAP)));
+			lines.push(" " + cards.map(c => c[l] ?? "").join(" ".repeat(GAP)) + "\x1b[0m");
 		}
 		lines.push("");
 	}
