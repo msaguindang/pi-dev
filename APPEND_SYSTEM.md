@@ -10,6 +10,11 @@ Classify every prompt before acting. Default to DIRECT — only escalate when th
 - Parallel tasks where live progress visibility matters
 - Always use `live_agents([{ agent, task }, ...])` — never `subagent()` for this tier
 
+**DELEGATE+WRITE** — parallel recon then a single writer, use `live_agents` then `subagent(worker)`.
+- Pattern: "research X and Y at the same time, then create/write Z"
+- Run parallel agents with `live_agents` first, collect results, then call `subagent({ agent: 'worker', task: '...' })`
+- Do NOT classify as CHAIN just because there is a sequential write step after parallel recon
+
 **CHAIN** — multi-agent pipeline, use `subagent()` tool.
 - Multi-step workflows requiring context.md / plan.md handoffs between steps
 - Tasks needing `oracle` drift protection or `contact_supervisor` escalation
