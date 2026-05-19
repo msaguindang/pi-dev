@@ -1,10 +1,69 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
+  // ── Edit tool — confirm before modifying config files ──────────────────
+  // Guards against ask-then-execute: agent proposes a change in prose,
+  // then immediately writes it without waiting for user confirmation.
+  pi.on("tool_call", async (event, ctx) => {
+    if (event.toolName === "edit" || event.toolName === "write") {
+      const path: string = event.input.path ?? "";
+      const configPatterns = [
+        /dotfiles\/wm\//,          // all WM configs (hyprland, i3, picom, polybar, waybar)
+        /\.config\/hypr\//,        // live hyprland config dir
+        /\.config\/waybar\//,      // waybar
+        /dotfiles\/wm\/i3\//,      // i3 config
+        /guardrails\.ts/,          // this file itself
+        /AGENTS\.md/,              // agent instructions
+        /long-term\.md/,           // long-term context
+      ];
+      if (configPatterns.some(p => p.test(path))) {
+        const ok = await ctx.ui.confirm(
+          "GUARDRAIL",
+          `Agent is about to edit a config file:\n${path}\n\nApply change?`
+        );
+        if (!ok) return { block: true, reason: "Blocked: config file edit denied by user" };
+      }
+      return;
+    }
+  });
+
   pi.on("tool_call", async (event, ctx) => {
     if (event.toolName !== "bash") return;
 
     const cmd = event.input.command ?? "";
+
+    // ── Principle 2: Never rm -rf a directory a running process watches ────
+    // Compositor, WM, and service config directories — deleting them mid-session
+    // causes inotify watchers to reload into empty state (lost 80 Hyprland binds).
+    const watchedConfigDirs = [
+      /rm\s+-rf?\s+~?\/?home\/[^/]+\/\.config\/hypr/,
+      /rm\s+-rf?\s+~?\/?home\/[^/]+\/\.config\/waybar/,
+      /rm\s+-rf?\s+~?\/?home\/[^/]+\/\.config\/i3/,
+      /rm\s+-rf?\s+~?\/?home\/[^/]+\/\.config\/sway/,
+    ];
+    if (watchedConfigDirs.some(p => p.test(cmd))) {
+      const ok = await ctx.ui.confirm(
+        "GUARDRAIL",
+        `rm -rf on a compositor/WM config directory detected:\n${cmd}\n\nA running compositor watches this path via inotify.\nDeleting it mid-session causes it to reload empty.\n\nSafe order: write new files → swap symlink → reload.\n\nProceed anyway?`
+      );
+      if (!ok) return { block: true, reason: "Blocked: rm -rf on watched compositor config directory" };
+    }
+
+    // ── Principle 6: Confirm before mutating live system config ──────────────
+    // Any in-place overwrite of a running service's config file requires
+    // confirmation — the file is only a proposal until the process accepts it.
+    const liveServiceConfigs = [
+      /tee\s+.*\/(systemd|hypr|waybar|i3|sway|picom)\/.*\.conf/,
+      /tee\s+.*\.service$/,
+      />\s*~?\/?etc\/systemd/,
+    ];
+    if (liveServiceConfigs.some(p => p.test(cmd))) {
+      const ok = await ctx.ui.confirm(
+        "GUARDRAIL",
+        `Live service config overwrite detected:\n${cmd}\n\nThis writes directly to a config a running process owns.\nAlways validate with a runtime check after applying.\n\nProceed?`
+      );
+      if (!ok) return { block: true, reason: "Blocked: live service config overwrite denied" };
+    }
 
     // ── Destructive filesystem ────────────────────────────────────────────
     if (/rm\s+-rf?\s+\/var\/www\/html/.test(cmd)) {

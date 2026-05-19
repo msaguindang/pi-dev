@@ -139,8 +139,10 @@ export default function (pi: ExtensionAPI) {
 				const topLeft = isWorking
 					? thm.fg("accent", ` ${spinnerFrames[spinnerIndex]} `)
 					: "";
+				// Session name pill — Tokyo Night blue bg (#7aa2f7) + dark text (#1a1b26)
+				// Matches the Claude Code highlighted session name treatment
 				const topRight = sessionName
-					? thm.fg("accent", ` ${sessionName} `)
+					? `\x1b[48;2;122;162;247m\x1b[38;2;26;27;38m ${sessionName} \x1b[0m`
 					: "";
 
 				// Bottom border: cwd + branch on left, model · thinking · ctx on right

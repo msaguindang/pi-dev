@@ -29,3 +29,7 @@ run-history.jsonl
 agents/devops.md
 agents/qa.md
 agents/admin.md
+pi-crash.log
+intercom/
+npm/
+scout-scanner.sh

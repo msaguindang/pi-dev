@@ -142,71 +142,109 @@ function buildAgentGridChat(termWidth: number): string[] {
 	return chatLines;
 }
 
-// ── Layout Constants ───────────────────────────────────────────────────────
+// ── ASCII Art ────────────────────────────────────────────────────────────
 
-const CARD_W  = 16;        // total card width (including borders)
-const CARD_IN = 14;        // inner usable width  (CARD_W - 2)
-const CARDS_R2 = 4;        // cards per row in tier 2
-const CARDS_R3 = 3;        // cards per row in tier 3
-const GAP = 2;             // inter-card gap (spaces)
-const ROW_SP = 1;          // blank line between rows in same tier
+const ASCII_ART = [
+	" █████╗ ██████╗      ██╗██╗   ██╗████████╗ █████╗ ███╗   ██╗████████╗",
+	"██╔══██╗██╔══██╗     ██║██║   ██║╚══██╔══╝██╔══██╗████╗  ██║╚══██╔══╝",
+	"███████║██║  ██║     ██║██║   ██║   ██║   ███████║██╔██╗ ██║   ██║   ",
+	"██╔══██║██║  ██║██   ██║██║   ██║   ██║   ██╔══██║██║╚██╗██║   ██║   ",
+	"██║  ██║██████╔╝╚█████╔╝╚██████╔╝   ██║   ██║  ██║██║ ╚████║   ██║   ",
+	"╚═╝  ╚═╝╚═════╝  ╚════╝  ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝  ",
+];
 
-// ── Card Rendering ───────────────────────────────────────────────────────
+// ── Live clock interval (module-level so agent_start can clear it) ────────
 
-function card(
-	name: string,
-	sub: string,
-	theme: Theme,
-	nameFg: string,
-): string[] {
-	const n = truncateToWidth(name, CARD_IN - 2, "…");
-	const s = truncateToWidth(sub,  CARD_IN - 2, "…");
-	const top = `╭${"─".repeat(CARD_IN)}╮`;
-	const mid1 = `│${theme.fg(nameFg, " " + n)}${" ".repeat(CARD_IN - visibleWidth(n) - 1)}│`;
-	const mid2 = `│${theme.fg("dim", " " + s)}${" ".repeat(CARD_IN - visibleWidth(s) - 1)}│`;
-	const bot = `╰${"─".repeat(CARD_IN)}╯`;
-	return [top, mid1, mid2, bot];
-}
-
-// ── Row Width Calculator ─────────────────────────────────────────────────
-
-function rowWidth(nCards: number): number {
-	return nCards * CARD_W + (nCards - 1) * GAP;
-}
+let clockInterval: ReturnType<typeof setInterval> | undefined;
 
 // ── GreetingWidget Component ────────────────────────────────────────────
 
 class GreetingWidget {
-	private cachedLines?: string[];
-	private cachedWidth?: number;
+	constructor(private readonly theme: Theme) {}
 
-	constructor(
-		private readonly theme: Theme,
-	) {}
-
-	private buildLines(): string[] {
+	private buildLines(width: number): string[] {
 		const th = this.theme;
+
+		// Center ASCII art
+		const artWidth = visibleWidth(ASCII_ART[0] ?? "");
+		const pad = Math.max(0, Math.floor((width - artWidth) / 2));
+		const indent = " ".repeat(pad);
+
+		// Live date + time
+		const now    = new Date();
+		const datePart = now.toLocaleDateString("en-US", {
+			weekday: "long",
+			month:   "long",
+			day:     "numeric",
+			year:    "numeric",
+		}).replace(",", " -");   // "Tuesday, May 19, 2026" → "Tuesday - May 19, 2026"
+		const timePart = now.toLocaleTimeString("en-US", {
+			hour:   "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+		});
+
+		// Center the sub-text lines as well
+		const msg1     = "Systems online. Awaiting your orders, commander.";
+		const msg2     = `${datePart}  ·  ${timePart}`;
+		const msgPad1  = " ".repeat(Math.max(0, Math.floor((width - visibleWidth(msg1)) / 2)));
+		const msgPad2  = " ".repeat(Math.max(0, Math.floor((width - visibleWidth(msg2)) / 2)));
+
 		return [
 			"",
-			th.fg("accent", "  ◈  ADJUTANT ONLINE"),
-			th.fg("muted",  "  Commander, your agents are ready."),
 			"",
+			...ASCII_ART.map(line =>
+				truncateToWidth(th.fg("accent", indent + line), width)
+			),
+			"",
+			truncateToWidth(th.fg("muted", msgPad1 + msg1), width),
+			truncateToWidth(th.fg("dim",   msgPad2 + msg2), width),
+			"",
+			...this.buildAgentList(width),
 		];
 	}
 
-	render(width: number): string[] {
-		if (this.cachedLines && this.cachedWidth === width) {
-			return this.cachedLines;
-		}
-		this.cachedLines = this.buildLines();
-		this.cachedWidth = width;
-		return this.cachedLines;
+	private buildAgentList(width: number): string[] {
+		const th       = this.theme;
+		const COLS     = 3;
+		const colWidth = Math.floor((width - 2) / COLS);   // leading "  " = 2
+		const lines: string[] = [];
+
+		const padRight = (s: string, visW: number, toW: number) =>
+			s + " ".repeat(Math.max(0, toW - visW));
+
+		const formatAgent = (agent: AgentEntry): string => {
+			const { br } = AGENT_COLORS[agent.name] ?? DEFAULT_COLORS;
+			// "name (subtitle)" — parens make clear subtitle describes the agent, not a new entry
+			const maxNameW = Math.floor(colWidth * 0.48);
+			const maxSubW  = colWidth - maxNameW - 3; // 3 = " (" + ")"
+			const nameStr  = truncateToWidth(agent.name,     maxNameW, "…");
+			const subStr   = truncateToWidth(agent.subtitle, maxSubW,  "…");
+			const entry    = `${br}${nameStr}${FG_RESET} \x1b[2m(${subStr})\x1b[22m`;
+			const entryVisW = visibleWidth(nameStr) + 2 + visibleWidth(subStr) + 1; // name + " (" + sub + ")"
+			return padRight(entry, entryVisW, colWidth);
+		};
+
+		const renderGroup = (label: string, agents: AgentEntry[]) => {
+			lines.push(`  ${th.fg("dim", label)}`);
+			for (let i = 0; i < agents.length; i += COLS) {
+				const row = agents.slice(i, i + COLS);
+				lines.push(truncateToWidth("  " + row.map(formatAgent).join(""), width));
+			}
+			lines.push("");
+		};
+
+		renderGroup("pipeline", TIER2_AGENTS);
+		renderGroup("domain",   TIER3_AGENTS);
+		return lines;
 	}
 
-	invalidate(): void {
-		this.cachedWidth = undefined;
-		this.cachedLines = undefined;
+	// No cache — render fresh every call so the clock always shows current time.
+	render(width: number): string[] {
+		return this.buildLines(width);
 	}
+
+	invalidate(): void { /* stateless — nothing to clear */ }
 }
 
 // ── Extension ───────────────────────────────────────────────────────────────
@@ -217,8 +255,13 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
 
-		ctx.ui.setWidget(WIDGET_KEY, (_tui, theme) => {
+		ctx.ui.setWidget(WIDGET_KEY, (tui, theme) => {
 			const widget = new GreetingWidget(theme);
+
+			// Tick every second so the clock stays live
+			if (clockInterval) clearInterval(clockInterval);
+			clockInterval = setInterval(() => tui.requestRender(), 1000);
+
 			return {
 				render: (w: number) => widget.render(w),
 				invalidate: () => widget.invalidate(),
@@ -228,6 +271,10 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("agent_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
+		if (clockInterval) {
+			clearInterval(clockInterval);
+			clockInterval = undefined;
+		}
 		ctx.ui.setWidget(WIDGET_KEY, undefined);
 	});
 
