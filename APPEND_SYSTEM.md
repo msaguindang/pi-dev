@@ -25,3 +25,4 @@ Cost rules:
 - Never delegate when direct suffices
 - When in doubt, go simpler
 - `live_agents` for visibility; `subagent()` for structured handoffs
+- Code changes always go to `worker` — never write code inline as orchestrator
