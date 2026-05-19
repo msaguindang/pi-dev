@@ -1,6 +1,23 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
+  // ── subagent() single-agent delegation — redirect to live_agents ───────────
+  // Routing rule: DELEGATE tier (single or parallel agents) must use live_agents,
+  // not subagent(). subagent() is for CHAIN tier only (multi-step structured pipelines).
+  // Fires when: subagent({ agent, task }) called without chain/tasks/action.
+  pi.on("tool_call", async (event, ctx) => {
+    if (event.toolName !== "subagent") return;
+    const input = event.input as Record<string, unknown>;
+    const isSingleAgent = input.agent && input.task && !input.chain && !input.tasks && !input.action;
+    if (isSingleAgent) {
+      const ok = await ctx.ui.confirm(
+        "GUARDRAIL — Routing",
+        `Single-agent delegation detected:\n  subagent({ agent: "${input.agent}", task: ... })\n\nRouting rule: DELEGATE tier must use live_agents, not subagent().\nsubagent() is for CHAIN tier (multi-step pipelines with handoffs).\n\nlive_agents([{ agent: "${input.agent}", task: ... }])\n\nProceed with subagent() anyway?`
+      );
+      if (!ok) return { block: true, reason: `Blocked: use live_agents([{ agent: "${input.agent}", task }]) for single-agent delegation` };
+    }
+  });
+
   // ── Edit tool — confirm before modifying config files ──────────────────
   // Guards against ask-then-execute: agent proposes a change in prose,
   // then immediately writes it without waiting for user confirmation.
