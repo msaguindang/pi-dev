@@ -145,26 +145,40 @@ export default function (pi: ExtensionAPI) {
 					? `\x1b[48;2;122;162;247m\x1b[38;2;26;27;38m ${sessionName} \x1b[0m`
 					: "";
 
-				// Bottom border: cwd + branch on left, model · thinking · ctx on right
-				const bottomLeft = thm.fg(
-					"muted",
-					` ${formatCwd(ctx.cwd)}${branch ? ` (${branch})` : ""} `,
-				);
-				const bottomRight = thm.fg(
-					"muted",
-					` ${ctx.model?.id ?? "no model"} · ${formatThinking(thinking)} · ${formatContext(ctx)} `,
-				);
-
 				const borderColor = (text: string) => this.borderColor(text);
 
+				// Top border: spinner + session pill
 				lines[0] = fitBorder(topLeft, topRight, width, borderColor);
-				lines[lines.length - 1] = fitBorder(bottomLeft, bottomRight, width, borderColor);
+				// Bottom border: clean line (info moved to belowEditor widget)
+				lines[lines.length - 1] = fitBorder("", "", width, borderColor);
 				return lines;
 			}
 		}
 
 		ctx.ui.setEditorComponent(
 			(tui, theme, keybindings) => new AdjutantEditor(tui, theme, keybindings),
+		);
+
+		// Info line below the editor border
+		ctx.ui.setWidget(
+			"adjutant-info",
+			(tui, theme) => ({
+				render(width: number): string[] {
+					const thinking = pi.getThinkingLevel();
+					const left = theme.fg(
+						"dim",
+						` ${formatCwd(ctx.cwd)}${branch ? ` (${branch})` : ""} `,
+					);
+					const right = theme.fg(
+						"dim",
+						` ${ctx.model?.id ?? "no model"} · ${formatThinking(thinking)} · ${formatContext(ctx)} `,
+					);
+					const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));
+					return [left + " ".repeat(gap) + right];
+				},
+				invalidate() {},
+			}),
+			{ placement: "belowEditor" },
 		);
 	});
 }
