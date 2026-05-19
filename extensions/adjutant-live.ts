@@ -135,7 +135,7 @@ function buildLiveGrid(states: SubState[], width: number): string[] {
 			cards.push(Array(CARD_HEIGHT).fill(" ".repeat(cardWidth)));
 		}
 		for (let l = 0; l < CARD_HEIGHT; l++) {
-			lines.push("\x1b[0m " + cards.map(c => c[l] ?? "").join(" ".repeat(GAP)) + "\x1b[0m");
+			lines.push(" " + cards.map(c => c[l] ?? "").join(" ".repeat(GAP)));
 		}
 		lines.push("");
 	}
@@ -185,9 +185,12 @@ export default function (pi: ExtensionAPI) {
 			widgetCtx.ui.setWidget(WIDGET_KEY, undefined);
 			return;
 		}
-		// String array form forces an immediate re-render on every call
-		const width = (process.stdout.columns || 120) - 2;
-		widgetCtx.ui.setWidget(WIDGET_KEY, buildLiveGrid(states, width));
+		// Factory form: TUI auto-appends SGR reset per line; agents captured by
+		// reference so render() always reads current state when called.
+		widgetCtx.ui.setWidget(WIDGET_KEY, (_tui: any, _theme: any) => ({
+			render: (w: number) => buildLiveGrid(states, w),
+			invalidate: () => {},
+		}));
 	}
 
 	// ── Subprocess spawner ────────────────────────────────────────────────
