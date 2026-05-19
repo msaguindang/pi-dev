@@ -66,7 +66,7 @@ function renderLiveCard(state: SubState, cardWidth: number): string[] {
 	const trunc = (s: string, max: number) =>
 		s.length > max ? s.slice(0, max - 3) + "..." : s;
 
-	const bord = (s: string) => bg + br + s + BG_RESET + FG_RESET;
+	const bord = (s: string) => bg + br + s + "\x1b[0m";
 	const border = (content: string, visLen: number) => {
 		const pad = " ".repeat(Math.max(0, inner - visLen));
 		return bord("\u2502") + bg + content + bg + pad + BG_RESET + bord("\u2502");
@@ -123,7 +123,7 @@ const GAP  = 1;
 const CARD_HEIGHT = 6;
 
 function buildLiveGrid(states: SubState[], width: number): string[] {
-	const actualCols = Math.min(COLS, states.length);
+	const actualCols = COLS;
 	const cardWidth = Math.floor((width - GAP * (actualCols - 1)) / actualCols);
 	if (cardWidth < 14) return ["\x1b[2m terminal too narrow \x1b[22m"];
 
@@ -135,7 +135,7 @@ function buildLiveGrid(states: SubState[], width: number): string[] {
 			cards.push(Array(CARD_HEIGHT).fill(" ".repeat(cardWidth)));
 		}
 		for (let l = 0; l < CARD_HEIGHT; l++) {
-			lines.push(" " + cards.map(c => c[l] ?? "").join(" ".repeat(GAP)) + "\x1b[0m");
+			lines.push("\x1b[0m " + cards.map(c => c[l] ?? "").join(" ".repeat(GAP)) + "\x1b[0m");
 		}
 		lines.push("");
 	}
