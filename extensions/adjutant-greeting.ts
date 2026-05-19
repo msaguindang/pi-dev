@@ -285,7 +285,10 @@ export default function (pi: ExtensionAPI) {
 		description: "Display the Adjutant agent roster as a colored card grid.",
 		parameters: Type.Object({}),
 		execute: async (_callId, _params, _signal, _onUpdate, ctx) => {
-			const termWidth = (process.stdout.columns || 120);
+			// Subtract padding: notify renders inside the conversation which has
+			// left indentation. Without this, card borders wrap and appear
+			// disconnected from the card content.
+			const termWidth = Math.max(60, (process.stdout.columns || 120) - 6);
 			const lines = buildAgentGridChat(termWidth);
 			if (ctx.hasUI) {
 				ctx.ui.notify(lines.join("\n"), "info");
