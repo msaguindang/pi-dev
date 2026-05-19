@@ -25,10 +25,7 @@ sessions/
 plan_output.txt
 run-history.jsonl
 
-# Personal agents (domain-specific, not generic)
-agents/devops.md
-agents/qa.md
-agents/admin.md
+# Pi runtime artifacts (machine-specific)
 pi-crash.log
 intercom/
 npm/
