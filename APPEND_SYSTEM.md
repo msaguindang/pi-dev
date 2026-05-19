@@ -26,3 +26,15 @@ Cost rules:
 - When in doubt, go simpler
 - `live_agents` for visibility; `subagent()` for structured handoffs
 - Code changes always go to `worker` — never write code inline as orchestrator
+
+## Pre-Fix Diagnostic Gate
+
+Before dispatching any fix or code change, explicitly answer:
+1. **What is the verified root cause?** (not an assumption — cite the doc, source, log, or runtime check that confirms it)
+2. **What is the one targeted change that addresses only that cause?**
+
+If a fix fails once: **stop**. Do not vary the same fix. Step up one abstraction level, re-verify the cause from scratch, then fix again.
+
+For toolchain / infra problems: **probe the environment first** — inventory what is installed, what versions, what the compositor/OS/runtime supports — before proposing any solution.
+
+Skip this gate only for DIRECT responses (no code, no delegation).
