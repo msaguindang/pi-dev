@@ -15,6 +15,11 @@ export default function (pi: ExtensionAPI) {
         /guardrails\.ts/,          // this file itself
         /AGENTS\.md/,              // agent instructions
         /long-term\.md/,           // long-term context
+        /\.pi\/agent\/extensions\//,  // pi agent extensions — code changes must go to worker
+        /\.pi\/agent\/AGENTS\.md/,    // pi agent instructions
+        /\.agents\/context\//,        // agent context files
+        /\.agents\/standards\//,      // agent standards
+        /\.agents\/roles\//,          // agent role definitions
       ];
       if (configPatterns.some(p => p.test(path))) {
         const ok = await ctx.ui.confirm(
