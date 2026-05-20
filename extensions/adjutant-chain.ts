@@ -57,6 +57,20 @@ interface ChainState {
 	clearTimer?: ReturnType<typeof setTimeout>;
 }
 
+interface ParallelStep {
+	name: string;
+	status: "running" | "done";
+}
+
+interface ParallelState {
+	steps: ParallelStep[];
+	startTime: number;
+	elapsed: number;
+	spinnerFrame: number;
+	tickTimer?: ReturnType<typeof setInterval>;
+	clearTimer?: ReturnType<typeof setTimeout>;
+}
+
 // ── Chain step extraction ──────────────────────────────────────────────────
 
 /**
@@ -227,15 +241,41 @@ function renderChainCard(
 	return [topLine, contentLine, hintLine, bottomLine];
 }
 
+// ── Parallel grid renderer ──────────────────────────────────────────────────
+
+function renderParallel(state: ParallelState, termWidth: number): string[] {
+	const cols      = Math.min(3, state.steps.length);
+	const GAP       = 1;
+	const cardWidth = Math.max(14, Math.floor((termWidth - 2 - GAP * (cols - 1)) / cols));
+	const tempState: ChainState = {
+		steps:        state.steps.map(s => ({ name: s.name, status: s.status as StepStatus })),
+		startTime:    state.startTime,
+		elapsed:      state.elapsed,
+		spinnerFrame: state.spinnerFrame,
+	};
+	const lines: string[] = [""];
+	for (let i = 0; i < tempState.steps.length; i += cols) {
+		const row   = tempState.steps.slice(i, i + cols);
+		const cards = row.map((step, idx) => renderChainCard(step, idx, tempState, cardWidth));
+		while (cards.length < cols) cards.push(Array(4).fill(" ".repeat(cardWidth)));
+		const h = cards[0]?.length ?? 4;
+		for (let l = 0; l < h; l++) lines.push(" " + cards.map(c => c[l] ?? "").join(" ".repeat(GAP)));
+		lines.push("");
+	}
+	return lines;
+}
+
 // ── Extension ──────────────────────────────────────────────────────────────
 
 export default function (pi: ExtensionAPI) {
-	// Module-level mutable state (one chain at a time)
-	let activeChain: ChainState | null = null;
-	let activeCallId: string | null    = null;
-	let widgetCtx: any                 = null;
+	let activeChain: ChainState | null       = null;
+	let activeCallId: string | null          = null;
+	let activeParallel: ParallelState | null = null;
+	let activeParallelId: string | null      = null;
+	let widgetCtx: any                       = null;
 
-	const WIDGET_KEY = "adjutant-chain";
+	const WIDGET_KEY   = "adjutant-chain";
+	const PARALLEL_KEY = "adjutant-parallel";
 
 	// ── Widget updater ───────────────────────────────────────────────────
 
@@ -261,6 +301,23 @@ export default function (pi: ExtensionAPI) {
 		activeCallId = null;
 	}
 
+	function setParallelWidget(): void {
+		if (!widgetCtx?.hasUI || !activeParallel) return;
+		const snap = activeParallel;
+		widgetCtx.ui.setWidget(PARALLEL_KEY, (_tui: any, _theme: any) => ({
+			render:     (w: number) => renderParallel(snap, w),
+			invalidate: () => {},
+		}));
+	}
+
+	function teardownParallel(): void {
+		if (!activeParallel) return;
+		if (activeParallel.tickTimer)  { clearInterval(activeParallel.tickTimer);  activeParallel.tickTimer  = undefined; }
+		if (activeParallel.clearTimer) { clearTimeout(activeParallel.clearTimer);  activeParallel.clearTimer = undefined; }
+		activeParallel   = null;
+		activeParallelId = null;
+	}
+
 	// ── tool_call: intercept subagent({ chain: [...] }) ──────────────────
 
 	pi.on("tool_call", (event, ctx) => {
@@ -268,6 +325,27 @@ export default function (pi: ExtensionAPI) {
 		widgetCtx = ctx;
 
 		const input = event.input as Record<string, unknown>;
+
+		// parallel tasks mode
+		if (Array.isArray(input["tasks"])) {
+			teardownParallel();
+			const steps: ParallelStep[] = (input["tasks"] as Array<Record<string, unknown>>)
+				.filter(t => typeof t["agent"] === "string")
+				.map(t => ({ name: t["agent"] as string, status: "running" as const }));
+			if (steps.length === 0) return;
+			const parallel: ParallelState = { steps, startTime: Date.now(), elapsed: 0, spinnerFrame: 0 };
+			activeParallel   = parallel;
+			activeParallelId = event.toolCallId;
+			parallel.tickTimer = setInterval(() => {
+				if (!activeParallel) return;
+				activeParallel.elapsed      = Date.now() - parallel.startTime;
+				activeParallel.spinnerFrame = (activeParallel.spinnerFrame + 1) % SPINNER_FRAMES.length;
+				setParallelWidget();
+			}, 80);
+			setParallelWidget();
+			return;
+		}
+
 		if (!Array.isArray(input["chain"])) return; // not a chain call — ignore
 
 		// Clean up any lingering chain
@@ -300,12 +378,24 @@ export default function (pi: ExtensionAPI) {
 		setWidget();
 	});
 
-	// ── tool_result: chain completed ──────────────────────────────────────
+	// ── tool_result: chain or parallel completed ──────────────────────────────
 
 	pi.on("tool_result", (event, ctx) => {
 		if (event.toolName !== "subagent") return;
-		if (event.toolCallId !== activeCallId) return;
 		widgetCtx = ctx;
+
+		// parallel completion
+		if (event.toolCallId === activeParallelId && activeParallel) {
+			if (activeParallel.tickTimer) { clearInterval(activeParallel.tickTimer); activeParallel.tickTimer = undefined; }
+			for (const s of activeParallel.steps) s.status = "done";
+			activeParallel.elapsed = Date.now() - activeParallel.startTime;
+			setParallelWidget();
+			const pRef = activeParallel;
+			pRef.clearTimer = setTimeout(() => { widgetCtx?.ui?.setWidget(PARALLEL_KEY, undefined); teardownParallel(); }, 3000);
+			return;
+		}
+
+		if (event.toolCallId !== activeCallId) return;
 
 		if (!activeChain) return;
 
@@ -336,10 +426,15 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		widgetCtx = ctx;
 		teardownChain();
-		if (ctx.hasUI) ctx.ui.setWidget(WIDGET_KEY, undefined);
+		teardownParallel();
+		if (ctx.hasUI) {
+			ctx.ui.setWidget(WIDGET_KEY, undefined);
+			ctx.ui.setWidget(PARALLEL_KEY, undefined);
+		}
 	});
 
 	pi.on("session_shutdown", () => {
 		teardownChain();
+		teardownParallel();
 	});
 }
