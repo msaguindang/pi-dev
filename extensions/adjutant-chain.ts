@@ -102,8 +102,8 @@ function extractStepNames(chain: unknown[]): string[] {
 
 // ── Card rendering ─────────────────────────────────────────────────────────
 
-const ARROW_SEGMENT = " ──→ "; // 5 visible chars; with padding = 7 total column cost
-const ARROW_WIDTH   = visibleWidth(ARROW_SEGMENT); // should be 5
+const ARROW_SEGMENT = " ────▶ "; // 7 visible chars — longer line + hollow arrowhead
+const ARROW_WIDTH   = visibleWidth(ARROW_SEGMENT);
 
 /**
  * Render all chain steps as a horizontal row of connected cards.
