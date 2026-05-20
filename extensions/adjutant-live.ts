@@ -374,6 +374,16 @@ export default function (pi: ExtensionAPI) {
 					state.status = "running";
 					updateWidget();
 					await spawnLiveAgent(state, model);
+					if (state.status === "error") {
+						// Abort: mark remaining steps as cancelled
+						const idx = states.indexOf(state);
+						for (const rem of states.slice(idx + 1)) {
+							rem.status   = "error";
+							rem.lastLine = "[skipped: prior step failed]";
+						}
+						updateWidget();
+						break;
+					}
 					previous = state.textChunks.join("");
 					updateWidget();
 				}
