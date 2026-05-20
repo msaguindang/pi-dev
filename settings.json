@@ -28,7 +28,7 @@
         "thinking": "low"
       },
       "context-builder": {
-        "model": "google/gemini-3.1-pro-preview-customtools",
+        "model": "anthropic/claude-sonnet-4-6",
         "thinking": "medium"
       },
       "oracle": {
@@ -36,24 +36,20 @@
         "thinking": "high"
       },
       "planner": {
-        "model": "google/gemini-3.1-pro-preview-customtools",
+        "model": "anthropic/claude-sonnet-4-6",
         "thinking": "high"
       },
       "researcher": {
-        "model": "google/gemini-3.1-pro-preview-customtools",
+        "model": "anthropic/claude-sonnet-4-6",
         "thinking": "medium"
       },
       "reviewer": {
-        "model": "google/gemini-3.1-pro-preview-customtools",
+        "model": "anthropic/claude-sonnet-4-6",
         "thinking": "high"
       },
       "worker": {
-        "model": "minimax/MiniMax-M2.7",
+        "model": "anthropic/claude-sonnet-4-6",
         "thinking": "high"
-      },
-      "delegate": {
-        "model": "anthropic/claude-haiku-4-5",
-        "thinking": "low"
       }
     }
   },

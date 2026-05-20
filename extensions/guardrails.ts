@@ -88,14 +88,17 @@ export default function (pi: ExtensionAPI) {
     }
 
     // ── Destructive filesystem ────────────────────────────────────────────
-    if (/rm\s+-rf?\s+\/var\/www\/html/.test(cmd)) {
-      const ok = await ctx.ui.confirm("GUARDRAIL", "rm -rf on NTV asset dir — allow?");
-      if (!ok) return { block: true, reason: "Blocked: destructive op on NTV asset directory" };
-    }
-
-    if (/rm\s+-rf?\s+\/data\/dev\/work\/ntv/.test(cmd)) {
-      const ok = await ctx.ui.confirm("GUARDRAIL", "rm -rf inside NTV workspace — allow?");
-      if (!ok) return { block: true, reason: "Blocked: destructive op on NTV workspace" };
+    // Project workspace destructive op — guard any rm -rf on known project paths
+    const projectPaths = [
+      process.env.NTV_DIR ?? "/data/dev/work/ntv",
+      "/var/www/html",
+    ].filter(Boolean);
+    for (const projectPath of projectPaths) {
+      const escaped = projectPath.replace(/[\/]/g, "\\/");
+      if (new RegExp(`rm\\s+-rf?\\s+${escaped}`).test(cmd)) {
+        const ok = await ctx.ui.confirm("GUARDRAIL", `rm -rf on project path detected:\n${cmd}\n\nAllow?`);
+        if (!ok) return { block: true, reason: `Blocked: destructive op on project path ${projectPath}` };
+      }
     }
 
     // ── Sensitive files ───────────────────────────────────────────────────
@@ -111,7 +114,9 @@ export default function (pi: ExtensionAPI) {
       }
 
       // Push to production branches — confirm
-      if (/\b(main|master|dev-deploy-environment)\b/.test(cmd)) {
+      const productionBranches = ["main", "master", process.env.DEPLOY_BRANCH ?? "dev-deploy-environment"];
+      const branchPattern = new RegExp(`\\b(${productionBranches.join("|")})\\b`);
+      if (branchPattern.test(cmd)) {
         const ok = await ctx.ui.confirm("GUARDRAIL", `git push to production branch detected:\n${cmd}\n\nAllow?`);
         if (!ok) return { block: true, reason: "Blocked: push to production branch denied" };
       }
@@ -128,15 +133,20 @@ export default function (pi: ExtensionAPI) {
       return { block: true, reason: "Blocked: npm publish requires manual execution" };
     }
 
-    // ── v2 deploy pipeline — confirm ──────────────────────────────────────
-    if (/forgejo|aptly|electron-builder/.test(cmd)) {
-      const ok = await ctx.ui.confirm("GUARDRAIL", `v2 deploy operation detected:\n${cmd}\n\nAllow?`);
-      if (!ok) return { block: true, reason: "Blocked: v2 deploy operation denied" };
+    // ── Deploy pipeline tools — configurable via PROJECT_DEPLOY_TOOLS env var ──
+    const deployTools = (process.env.PROJECT_DEPLOY_TOOLS ?? "forgejo,aptly,electron-builder").split(",").filter(Boolean);
+    const deployPattern = new RegExp(deployTools.join("|"));
+    if (deployTools.length > 0 && deployPattern.test(cmd)) {
+      const ok = await ctx.ui.confirm("GUARDRAIL", `Deploy pipeline operation detected:\n${cmd}\n\nAllow?`);
+      if (!ok) return { block: true, reason: "Blocked: deploy pipeline operation denied" };
     }
 
-    // ── Local tarball protection ───────────────────────────────────────────
-    if (/npm\s+install.*nct-vistar/.test(cmd)) {
-      return { block: true, reason: "Blocked: nct-vistar must use local tarball — never fetch from npm" };
+    // ── Local tarball protection — configurable via PROJECT_LOCAL_PACKAGES env var ──
+    const localPackages = (process.env.PROJECT_LOCAL_PACKAGES ?? "nct-vistar").split(",").filter(Boolean);
+    for (const pkg of localPackages) {
+      if (new RegExp(`npm\\s+install.*${pkg}`).test(cmd)) {
+        return { block: true, reason: `Blocked: ${pkg} must use local tarball — never fetch from npm` };
+      }
     }
 
     // ── Worktree enforcement ───────────────────────────────────────────────

@@ -1,6 +1,6 @@
-# Pi Agent Setup — Adjutant / Foundry
+# Pi Agent Setup — NTV360 Adjutant / Foundry
 
-Portable Pi coding agent. Two repos required — one generic (this), one personal.
+Portable Pi coding agent for the NTV360 team. Two repos required — one generic (this), one personal.
 
 ## Prerequisites
 - Node.js 18+
@@ -11,12 +11,12 @@ Portable Pi coding agent. Two repos required — one generic (this), one persona
 
 ### 1. Clone this repo
 ```bash
-git clone git@github.com:msaguindang/dot-pi.git ~/.pi/agent
+git clone <your-dot-pi-repo-url> ~/.pi/agent
 ```
 
 ### 2. Create your personal context vault
 ```bash
-git clone git@github.com:msaguindang/dot-agents.git ~/.agents
+git clone <your-dot-agents-ntv-repo-url> ~/.agents
 # or fork it and replace context/ with your own
 ```
 

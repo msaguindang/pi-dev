@@ -27,10 +27,9 @@ const TIER2_AGENTS: AgentEntry[] = [
 	{ name: "delegate",       subtitle: "lightweight"    },
 ];
 
+// Domain agents — personal/project-specific, defined in ~/.agents/agents/
+// Add your own here or leave empty for a clean default install
 const TIER3_AGENTS: AgentEntry[] = [
-	{ name: "devops", subtitle: "RPi & infra"      },
-	{ name: "qa",     subtitle: "spec + bugs"      },
-	{ name: "admin",  subtitle: "writing & vault"  },
 ];
 
 // ── Agent Color Palette ──────────────────────────────────────────────────
