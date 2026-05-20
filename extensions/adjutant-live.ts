@@ -28,7 +28,7 @@ interface SubState {
 	id: number;
 	agentName: string;
 	task: string;
-	status: "running" | "done" | "error";
+	status: "pending" | "running" | "done" | "error";
 	textChunks: string[];
 	toolCount: number;
 	elapsed: number;
@@ -81,10 +81,11 @@ function renderLiveCard(state: SubState, cardWidth: number): string[] {
 
 	// Line 2: status + elapsed
 	const statusIcon =
+		state.status === "pending" ? "\x1b[2m\u25cb\x1b[22m"               :
 		state.status === "running" ? "\x1b[38;2;0;180;220m\u25cf\x1b[39m" :
 		state.status === "done"    ? "\x1b[38;2;80;190;80m\u2713\x1b[39m"  :
 		                             "\x1b[38;2;200;60;80m\u2717\x1b[39m";
-	const elapsedStr = " " + Math.round(state.elapsed / 1000) + "s";
+	const elapsedStr = state.status === "pending" ? "" : " " + Math.round(state.elapsed / 1000) + "s";
 	const statusRaw = state.status + elapsedStr;
 	const statusLine = border(
 		" " + statusIcon + " \x1b[2m" + statusRaw + "\x1b[22m",
@@ -313,67 +314,76 @@ export default function (pi: ExtensionAPI) {
 	pi.registerTool({
 		name:        "live_agents",
 		label:       "Live Agents",
-		description: "Spawn N agents in parallel with live TUI progress cards. Blocks until all complete, then returns aggregated results. Use for parallel scouting, research, or any task benefiting from live visibility.",
+		description: "Spawn agents in parallel (tasks) or sequential chain (chain) with live TUI cards. Use {previous} in chain tasks to reference prior step output.",
 		parameters:  Type.Object({
-			tasks: Type.Array(
+			tasks: Type.Optional(Type.Array(
 				Type.Object({
-					agent: Type.String({ description: "Agent name (scout, researcher, reviewer, etc.)" }),
+					agent: Type.String({ description: "Agent name" }),
 					task:  Type.String({ description: "Task for this agent" }),
 				}),
 				{ description: "Agent+task pairs to run in parallel" },
-			),
+			)),
+			chain: Type.Optional(Type.Array(
+				Type.Object({
+					agent: Type.String({ description: "Agent name" }),
+					task:  Type.String({ description: "Task — use {previous} to inject prior step output" }),
+				}),
+				{ description: "Sequential steps — each step receives prior output via {previous}" },
+			)),
 		}),
 
 		execute: async (_callId, params, _signal, _onUpdate, ctx) => {
 			widgetCtx = ctx;
+			const p = params as { tasks?: {agent:string;task:string}[]; chain?: {agent:string;task:string}[] };
+			const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "anthropic/claude-haiku-4-5";
 
-			const { tasks } = params as { tasks: { agent: string; task: string }[] };
-			if (!tasks?.length) {
-				return { content: [{ type: "text", text: "No tasks provided." }] };
-			}
-
-			// Init states
-			const states: SubState[] = tasks.map(t => {
+			const buildState = (t: {agent:string;task:string}, status: SubState["status"]): SubState => {
 				const state: SubState = {
-					id:          nextId++,
-					agentName:   t.agent,
-					task:        t.task,
-					status:      "running",
-					textChunks:  [],
-					toolCount:   0,
-					elapsed:     0,
-					lastLine:    "",
+					id: nextId++, agentName: t.agent, task: t.task,
+					status, textChunks: [], toolCount: 0, elapsed: 0, lastLine: "",
 				};
 				agents.set(state.id, state);
 				return state;
-			});
-
-			updateWidget();
-
-			const model = ctx.model
-				? `${ctx.model.provider}/${ctx.model.id}`
-				: "anthropic/claude-haiku-4-5";
-
-			// Run all in parallel, wait for all to finish
-			await Promise.allSettled(states.map(s => spawnLiveAgent(s, model)));
-
-			// Clear widget
-			if (ctx.hasUI) ctx.ui.setWidget(WIDGET_KEY, undefined);
-
-			// Aggregate results
-			const sections = states.map(s => {
-				const icon   = s.status === "done" ? "✓" : "✗";
-				const output = s.textChunks.join("").slice(0, 4000);
-				const truncated = s.textChunks.join("").length > 4000 ? "\n\n... [truncated]" : "";
-				return `## [${icon}] ${s.agentName} (${Math.round(s.elapsed / 1000)}s)\n\n${output}${truncated}`;
-			});
-
-			// Cleanup map
-			for (const s of states) agents.delete(s.id);
-
-			return {
-				content: [{ type: "text", text: sections.join("\n\n---\n\n") }],
 			};
+
+			const summarise = (states: SubState[]) =>
+				states.map(s => {
+					const icon = s.status === "done" ? "✓" : "✗";
+					const out  = s.textChunks.join("");
+					return `## [${icon}] ${s.agentName} (${Math.round(s.elapsed / 1000)}s)\n\n${out.slice(0, 4000)}${out.length > 4000 ? "\n\n... [truncated]" : ""}`;
+				}).join("\n\n---\n\n");
+
+			// ── PARALLEL ─────────────────────────────────────────────────
+			if (p.tasks?.length) {
+				const states = p.tasks.map(t => buildState(t, "running"));
+				updateWidget();
+				await Promise.allSettled(states.map(s => spawnLiveAgent(s, model)));
+				if (ctx.hasUI) ctx.ui.setWidget(WIDGET_KEY, undefined);
+				const result = summarise(states);
+				for (const s of states) agents.delete(s.id);
+				return { content: [{ type: "text", text: result }] };
+			}
+
+			// ── CHAIN ─────────────────────────────────────────────────────
+			if (p.chain?.length) {
+				const states = p.chain.map((t, i) => buildState(t, i === 0 ? "running" : "pending"));
+				updateWidget();
+				let previous = "";
+				for (const state of states) {
+					state.task   = state.task.replace(/\{previous\}/g, previous);
+					state.status = "running";
+					updateWidget();
+					await spawnLiveAgent(state, model);
+					previous = state.textChunks.join("");
+					updateWidget();
+				}
+				if (ctx.hasUI) ctx.ui.setWidget(WIDGET_KEY, undefined);
+				const result = summarise(states);
+				for (const s of states) agents.delete(s.id);
+				return { content: [{ type: "text", text: result }] };
+			}
+
+			return { content: [{ type: "text", text: "Provide 'tasks' (parallel) or 'chain' (sequential)." }] };
 		},
 	});
 
