@@ -318,19 +318,19 @@ export default function (pi: ExtensionAPI) {
 		parameters:  Type.Object({
 			tasks: Type.Optional(Type.Array(
 				Type.Object({
-					agent: Type.String({ description: "Agent name" }),
+					agent: Type.String({ description: "Agent name (scout, researcher, reviewer, etc.)" }),
 					task:  Type.String({ description: "Task for this agent" }),
 				}),
-				{ description: "Agent+task pairs to run in parallel" },
+				{ description: "Agent+task pairs to run IN PARALLEL. Omit when using chain." },
 			)),
 			chain: Type.Optional(Type.Array(
 				Type.Object({
 					agent: Type.String({ description: "Agent name" }),
 					task:  Type.String({ description: "Task — use {previous} to inject prior step output" }),
 				}),
-				{ description: "Sequential steps — each step receives prior output via {previous}" },
+				{ description: "SEQUENTIAL steps. Each step sees {previous} output. Omit when using tasks." },
 			)),
-		}),
+		}, { additionalProperties: false }),
 
 		execute: async (_callId, params, _signal, _onUpdate, ctx) => {
 			widgetCtx = ctx;
