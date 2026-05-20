@@ -106,6 +106,11 @@ export default function (pi: ExtensionAPI) {
       return { block: true, reason: "Blocked: write redirect to sensitive file detected" };
     }
 
+    // ── Infisical secret dump ─────────────────────────────────────────────────────
+    if (/infisical\s+(secrets|export)/.test(cmd)) {
+      return { block: true, reason: "Blocked: infisical secret dump not allowed. Use wrapper scripts: ticktick-cli.sh, git-mcp.sh" };
+    }
+
     // ── Git push guardrails ───────────────────────────────────────────────
     if (/git\s+push/.test(cmd)) {
       // Force push — always block

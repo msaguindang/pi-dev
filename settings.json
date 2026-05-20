@@ -55,8 +55,9 @@
   },
   "extensions": [
     "extensions/first-run.ts",
-    "-extensions/guardrails.ts",
-    "extensions/memory-inject.ts"
+    "extensions/guardrails.ts",
+    "extensions/memory-inject.ts",
+    "extensions/adjutant-live.ts"
   ],
   "quietStartup": true,
   "steeringMode": "all",
