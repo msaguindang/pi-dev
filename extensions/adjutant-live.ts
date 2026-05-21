@@ -125,7 +125,7 @@ const CARD_HEIGHT = 6;
 
 function buildLiveGrid(states: SubState[], width: number): string[] {
 	const actualCols = COLS;
-	const cardWidth = Math.floor((width - GAP * (actualCols - 1)) / actualCols);
+	const cardWidth = Math.floor((width - 1 - GAP * (actualCols - 1)) / actualCols);
 	if (cardWidth < 14) return ["\x1b[2m terminal too narrow \x1b[22m"];
 
 	const lines: string[] = [""];
@@ -203,10 +203,13 @@ export default function (pi: ExtensionAPI) {
 		return new Promise<void>((resolve) => {
 			const sessionFile = makeSessionFile(state.id);
 
+			const COST_TRACKER = path.join(os.homedir(), ".pi", "agent", "extensions", "cost-tracker.ts");
+
 			const proc = spawn("pi", [
 				"--mode", "json",
 				"-p",
 				"--no-extensions",
+				"--extension", COST_TRACKER,
 				"--no-context-files",
 				"--model", model,
 				"--tools", "read,grep,find,ls,bash",
@@ -215,7 +218,11 @@ export default function (pi: ExtensionAPI) {
 				state.task,
 			], {
 				stdio:  ["ignore", "pipe", "pipe"],
-				env:    { ...process.env },
+				env:    {
+					...process.env,
+					PI_SUBAGENT_CHILD:       "1",
+					PI_SUBAGENT_CHILD_AGENT: state.agentName,
+				},
 				detached: false,
 			});
 
@@ -335,7 +342,21 @@ export default function (pi: ExtensionAPI) {
 		execute: async (_callId, params, _signal, _onUpdate, ctx) => {
 			widgetCtx = ctx;
 			const p = params as { tasks?: {agent:string;task:string}[]; chain?: {agent:string;task:string}[] };
-			const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "anthropic/claude-haiku-4-5";
+			const fallbackModel = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "anthropic/claude-haiku-4-5";
+
+			// Resolve per-agent model from settings.json agentOverrides.
+			// Falls back to the orchestrator model if the agent has no override.
+			function resolveAgentModel(agentNameArg: string): string {
+				try {
+					const settingsPath = path.join(os.homedir(), ".pi", "agent", "settings.json");
+					const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+					const overrideModel = settings?.subagents?.agentOverrides?.[agentNameArg]?.model;
+					if (overrideModel) return overrideModel;
+				} catch {
+					// settings unreadable — fall back to orchestrator model
+				}
+				return fallbackModel;
+			}
 
 			const buildState = (t: {agent:string;task:string}, status: SubState["status"]): SubState => {
 				const state: SubState = {
@@ -357,7 +378,7 @@ export default function (pi: ExtensionAPI) {
 			if (p.tasks?.length) {
 				const states = p.tasks.map(t => buildState(t, "running"));
 				updateWidget();
-				await Promise.allSettled(states.map(s => spawnLiveAgent(s, model)));
+				await Promise.allSettled(states.map(s => spawnLiveAgent(s, resolveAgentModel(s.agentName))));
 				if (ctx.hasUI) ctx.ui.setWidget(WIDGET_KEY, undefined);
 				const result = summarise(states);
 				for (const s of states) agents.delete(s.id);
@@ -373,7 +394,7 @@ export default function (pi: ExtensionAPI) {
 					state.task   = state.task.replace(/\{previous\}/g, previous);
 					state.status = "running";
 					updateWidget();
-					await spawnLiveAgent(state, model);
+					await spawnLiveAgent(state, resolveAgentModel(state.agentName));
 					if (state.status === "error") {
 						// Abort: mark remaining steps as cancelled
 						const idx = states.indexOf(state);

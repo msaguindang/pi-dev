@@ -86,7 +86,7 @@ const COLS = 3;
 const CARD_GAP = 2;
 
 function buildAgentGrid(width: number): string[] {
-	const cardWidth = Math.floor((width - CARD_GAP * (COLS - 1)) / COLS);
+	const cardWidth = Math.floor((width - 1 - CARD_GAP * (COLS - 1)) / COLS);
 	if (cardWidth < 14) return ["\x1b[2m terminal too narrow \x1b[22m"];
 
 	const lines: string[] = [];
@@ -115,7 +115,7 @@ function buildAgentGrid(width: number): string[] {
 function buildAgentGridChat(termWidth: number): string[] {
 	const cols = 3;
 	const gap  = 1;
-	const cardWidth = Math.floor((termWidth - gap * (cols - 1)) / cols);
+	const cardWidth = Math.floor((termWidth - 1 - gap * (cols - 1)) / cols);
 	if (cardWidth < 14) return ["\x1b[2m terminal too narrow \x1b[22m"];
 
 	const chatLines: string[] = [];
