@@ -132,16 +132,15 @@ export default function (pi: ExtensionAPI) {
     };
     void refreshBranch();
 
-    class AdjutantEditor extends CustomEditor {
-      private editorTheme: EditorTheme;
+    let borderColorFn: ((text: string) => string) | undefined;
 
+    class AdjutantEditor extends CustomEditor {
       constructor(
         tui: TUI,
         theme: EditorTheme,
         keybindings: KeybindingsManager,
       ) {
         super(tui, theme, keybindings, { paddingX: 0 });
-        this.editorTheme = theme;
         activeTui = tui;
       }
 
@@ -150,9 +149,6 @@ export default function (pi: ExtensionAPI) {
         if (lines.length < 2) return lines;
 
         const thm = ctx.ui.theme;
-        const model = ctx.model
-          ? `${ctx.model.provider}/${ctx.model.id}`
-          : "no model";
         const thinking = pi.getThinkingLevel();
 
         // Top border: spinner (when working) on left, session name on right
@@ -164,7 +160,8 @@ export default function (pi: ExtensionAPI) {
         const displayName = sessionName && sessionName.trim() !== "" ? sessionName : "Unnamed Session";
         const topRight = `\x1b[48;2;122;162;247m\x1b[38;2;26;27;38m ${displayName} \x1b[0m`;
 
-        const borderColor = (text: string) => this.editorTheme.borderColor(text);
+        // borderColorFn captured from factory closure — avoids private field access issue
+        const borderColor = borderColorFn ?? ((text: string) => text);
 
         // Top border: spinner + session pill
         lines[0] = fitBorder(topLeft, topRight, width, borderColor);
@@ -175,7 +172,10 @@ export default function (pi: ExtensionAPI) {
     }
 
     ctx.ui.setEditorComponent(
-      (tui, theme, keybindings) => new AdjutantEditor(tui, theme, keybindings),
+      (tui, theme, keybindings) => {
+        borderColorFn = theme.borderColor.bind(theme);
+        return new AdjutantEditor(tui, theme, keybindings);
+      },
     );
 
     // Info line below the editor border
