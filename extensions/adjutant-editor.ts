@@ -1,184 +1,206 @@
 import {
-	CustomEditor,
-	type ExtensionAPI,
-	type ExtensionContext,
-	type KeybindingsManager,
+  CustomEditor,
+  type ExtensionAPI,
+  type ExtensionContext,
+  type KeybindingsManager,
 } from "@earendil-works/pi-coding-agent";
 import type { Component, EditorTheme, TUI } from "@earendil-works/pi-tui";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 function fitBorder(
-	left: string,
-	right: string,
-	width: number,
-	border: (text: string) => string,
-	fill: (text: string) => string = border,
+  left: string,
+  right: string,
+  width: number,
+  border: (text: string) => string,
+  fill: (text: string) => string = border,
 ): string {
-	if (width <= 0) return "";
-	if (width === 1) return border("─");
+  if (width <= 0) return "";
+  if (width === 1) return border("─");
 
-	let leftText = left;
-	let rightText = right;
-	const fixedWidth = 2;
-	const minimumGap = 3;
+  let leftText = left;
+  let rightText = right;
+  const fixedWidth = 2;
+  const minimumGap = 3;
 
-	while (
-		fixedWidth + visibleWidth(leftText) + visibleWidth(rightText) + minimumGap > width &&
-		visibleWidth(rightText) > 0
-	) {
-		rightText = truncateToWidth(rightText, Math.max(0, visibleWidth(rightText) - 1), "");
-	}
-	while (
-		fixedWidth + visibleWidth(leftText) + visibleWidth(rightText) + minimumGap > width &&
-		visibleWidth(leftText) > 0
-	) {
-		leftText = truncateToWidth(leftText, Math.max(0, visibleWidth(leftText) - 1), "");
-	}
+  while (
+    fixedWidth + visibleWidth(leftText) + visibleWidth(rightText) + minimumGap >
+      width &&
+    visibleWidth(rightText) > 0
+  ) {
+    rightText = truncateToWidth(
+      rightText,
+      Math.max(0, visibleWidth(rightText) - 1),
+      "",
+    );
+  }
+  while (
+    fixedWidth + visibleWidth(leftText) + visibleWidth(rightText) + minimumGap >
+      width &&
+    visibleWidth(leftText) > 0
+  ) {
+    leftText = truncateToWidth(
+      leftText,
+      Math.max(0, visibleWidth(leftText) - 1),
+      "",
+    );
+  }
 
-	const gapWidth = Math.max(0, width - fixedWidth - visibleWidth(leftText) - visibleWidth(rightText));
-	return `${border("─")}${leftText}${fill("─".repeat(gapWidth))}${rightText}${border("─")}`;
+  const gapWidth = Math.max(
+    0,
+    width - fixedWidth - visibleWidth(leftText) - visibleWidth(rightText),
+  );
+  return `${border("─")}${leftText}${fill("─".repeat(gapWidth))}${rightText}${border("─")}`;
 }
 
 function formatCwd(cwd: string): string {
-	const home = process.env.HOME;
-	if (home && cwd.startsWith(home)) {
-		return `~${cwd.slice(home.length)}`;
-	}
-	return cwd;
+  const home = process.env.HOME;
+  if (home && cwd.startsWith(home)) {
+    return `~${cwd.slice(home.length)}`;
+  }
+  return cwd;
 }
 
 function formatContext(ctx: ExtensionContext): string {
-	const usage = ctx.getContextUsage();
-	const contextWindow = usage?.contextWindow ?? ctx.model?.contextWindow;
-	if (!contextWindow || !usage || usage.percent === null) {
-		return "ctx ?";
-	}
-	return `ctx ${Math.round(usage.percent)}%/${(contextWindow / 1000).toFixed(0)}k`;
+  const usage = ctx.getContextUsage();
+  const contextWindow = usage?.contextWindow ?? ctx.model?.contextWindow;
+  if (!contextWindow || !usage || usage.percent === null) {
+    return "ctx ?";
+  }
+  return `ctx ${Math.round(usage.percent)}%/${(contextWindow / 1000).toFixed(0)}k`;
 }
 
 function formatThinking(level: string): string {
-	return level === "off" ? "off" : level;
+  return level === "off" ? "off" : level;
 }
 
 class EmptyFooter implements Component {
-	render(): string[] {
-		return [];
-	}
+  render(): string[] {
+    return [];
+  }
 
-	invalidate(): void {}
+  invalidate(): void {}
 }
 
 export default function (pi: ExtensionAPI) {
-	let isWorking = false;
-	let spinnerIndex = 0;
-	let spinnerTimer: ReturnType<typeof setInterval> | undefined;
-	let activeTui: TUI | undefined;
-	const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+  let isWorking = false;
+  let spinnerIndex = 0;
+  let spinnerTimer: ReturnType<typeof setInterval> | undefined;
+  let activeTui: TUI | undefined;
+  const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-	const stopSpinner = () => {
-		if (spinnerTimer) {
-			clearInterval(spinnerTimer);
-			spinnerTimer = undefined;
-		}
-	};
+  const stopSpinner = () => {
+    if (spinnerTimer) {
+      clearInterval(spinnerTimer);
+      spinnerTimer = undefined;
+    }
+  };
 
-	pi.on("agent_start", () => {
-		isWorking = true;
-		stopSpinner();
-		spinnerTimer = setInterval(() => {
-			spinnerIndex = (spinnerIndex + 1) % spinnerFrames.length;
-			activeTui?.requestRender();
-		}, 80);
-		activeTui?.requestRender();
-	});
+  pi.on("agent_start", () => {
+    isWorking = true;
+    stopSpinner();
+    spinnerTimer = setInterval(() => {
+      spinnerIndex = (spinnerIndex + 1) % spinnerFrames.length;
+      activeTui?.requestRender();
+    }, 80);
+    activeTui?.requestRender();
+  });
 
-	pi.on("agent_end", () => {
-		isWorking = false;
-		stopSpinner();
-		activeTui?.requestRender();
-	});
+  pi.on("agent_end", () => {
+    isWorking = false;
+    stopSpinner();
+    activeTui?.requestRender();
+  });
 
-	pi.on("session_shutdown", () => {
-		stopSpinner();
-		activeTui = undefined;
-	});
+  pi.on("session_shutdown", () => {
+    stopSpinner();
+    activeTui = undefined;
+  });
 
-	pi.on("session_start", (_event, ctx) => {
-		if (!ctx.hasUI) return;
-		ctx.ui.setWorkingVisible(false);
-		ctx.ui.setFooter(() => new EmptyFooter());
+  pi.on("session_start", (_event, ctx) => {
+    if (!ctx.hasUI) return;
+    ctx.ui.setWorkingVisible(false);
 
-		let branch: string | undefined;
+    let branch: string | undefined;
 
-		const refreshBranch = async () => {
-			const result = await pi
-				.exec("git", ["branch", "--show-current"], { cwd: ctx.cwd })
-				.catch(() => undefined);
-			const stdout = result?.stdout.trim();
-			branch = stdout && stdout.length > 0 ? stdout : undefined;
-			activeTui?.requestRender();
-		};
-		void refreshBranch();
+    const refreshBranch = async () => {
+      const result = await pi
+        .exec("git", ["branch", "--show-current"], { cwd: ctx.cwd })
+        .catch(() => undefined);
+      const stdout = result?.stdout.trim();
+      branch = stdout && stdout.length > 0 ? stdout : undefined;
+      activeTui?.requestRender();
+    };
+    void refreshBranch();
 
-		class AdjutantEditor extends CustomEditor {
-			constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
-				super(tui, theme, keybindings, { paddingX: 0 });
-				activeTui = tui;
-			}
+    class AdjutantEditor extends CustomEditor {
+      private editorTheme: EditorTheme;
 
-			render(width: number): string[] {
-				const lines = super.render(width);
-				if (lines.length < 2) return lines;
+      constructor(
+        tui: TUI,
+        theme: EditorTheme,
+        keybindings: KeybindingsManager,
+      ) {
+        super(tui, theme, keybindings, { paddingX: 0 });
+        this.editorTheme = theme;
+        activeTui = tui;
+      }
 
-				const thm = ctx.ui.theme;
-				const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "no model";
-				const thinking = pi.getThinkingLevel();
+      render(width: number): string[] {
+        const lines = super.render(width);
+        if (lines.length < 2) return lines;
 
-				// Top border: spinner (when working) on left, session name on right
-				const sessionName = pi.getSessionName();
-				const topLeft = isWorking
-					? thm.fg("accent", ` ${spinnerFrames[spinnerIndex]} `)
-					: "";
-				// Session name pill — Tokyo Night blue bg (#7aa2f7) + dark text (#1a1b26)
-				// Matches the Claude Code highlighted session name treatment
-				const topRight = sessionName
-					? `\x1b[48;2;122;162;247m\x1b[38;2;26;27;38m ${sessionName} \x1b[0m`
-					: "";
+        const thm = ctx.ui.theme;
+        const model = ctx.model
+          ? `${ctx.model.provider}/${ctx.model.id}`
+          : "no model";
+        const thinking = pi.getThinkingLevel();
 
-				const borderColor = (text: string) => this.borderColor(text);
+        // Top border: spinner (when working) on left, session name on right
+        const sessionName = pi.getSessionName();
+        const topLeft = isWorking
+          ? thm.fg("accent", ` ${spinnerFrames[spinnerIndex]} `)
+          : "";
+        // Session name pill — Tokyo Night blue bg (#7aa2f7) + dark text (#1a1b26)
+        const displayName = sessionName && sessionName.trim() !== "" ? sessionName : "Unnamed Session";
+        const topRight = `\x1b[48;2;122;162;247m\x1b[38;2;26;27;38m ${displayName} \x1b[0m`;
 
-				// Top border: spinner + session pill
-				lines[0] = fitBorder(topLeft, topRight, width, borderColor);
-				// Bottom border: clean line (info moved to belowEditor widget)
-				lines[lines.length - 1] = fitBorder("", "", width, borderColor);
-				return lines;
-			}
-		}
+        const borderColor = (text: string) => this.editorTheme.borderColor(text);
 
-		ctx.ui.setEditorComponent(
-			(tui, theme, keybindings) => new AdjutantEditor(tui, theme, keybindings),
-		);
+        // Top border: spinner + session pill
+        lines[0] = fitBorder(topLeft, topRight, width, borderColor);
+        // Bottom border: clean line (info moved to belowEditor widget)
+        lines[lines.length - 1] = fitBorder("", "", width, borderColor);
+        return lines;
+      }
+    }
 
-		// Info line below the editor border
-		ctx.ui.setWidget(
-			"adjutant-info",
-			(tui, theme) => ({
-				render(width: number): string[] {
-					const thinking = pi.getThinkingLevel();
-					const left = theme.fg(
-						"dim",
-						` ${formatCwd(ctx.cwd)}${branch ? ` (${branch})` : ""} `,
-					);
-					const right = theme.fg(
-						"dim",
-						` ${ctx.model?.id ?? "no model"} · ${formatThinking(thinking)} · ${formatContext(ctx)} `,
-					);
-					const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));
-					return [left + " ".repeat(gap) + right];
-				},
-				invalidate() {},
-			}),
-			{ placement: "belowEditor" },
-		);
-	});
+    ctx.ui.setEditorComponent(
+      (tui, theme, keybindings) => new AdjutantEditor(tui, theme, keybindings),
+    );
+
+    // Info line below the editor border
+    ctx.ui.setWidget(
+      "adjutant-info",
+      (tui, theme) => ({
+        render(width: number): string[] {
+          const thinking = pi.getThinkingLevel();
+          const left = theme.fg(
+            "dim",
+            ` ${formatCwd(ctx.cwd)}${branch ? ` (${branch})` : ""} `,
+          );
+          const right = theme.fg(
+            "dim",
+            ` ${ctx.model?.id ?? "no model"} · ${formatThinking(thinking)} · ${formatContext(ctx)} `,
+          );
+          const gap = Math.max(
+            1,
+            width - visibleWidth(left) - visibleWidth(right),
+          );
+          return [left + " ".repeat(gap) + right];
+        },
+        invalidate() {},
+      }),
+      { placement: "belowEditor" },
+    );
+  });
 }
