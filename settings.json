@@ -1,78 +1,45 @@
 {
-  "lastChangelogVersion": "0.75.3",
-  "scoutTimeout": 120,
-  "scoutThreshold": 10,
-  "control": {
-    "activeNoticeAfterMs": 120000,
-    "needsAttentionAfterMs": 180000
-  },
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-sonnet-4-6",
+  "lastChangelogVersion": "0.75.5",
+  "defaultProvider": "google",
+  "defaultModel": "gemini-3.1-pro-preview-customtools",
   "defaultThinkingLevel": "high",
+  "hideThinkingBlock": true,
   "packages": [
-    {
-      "source": "npm:pi-subagents",
-      "prompts": [
-        "-prompts/parallel-research.md",
-        "-prompts/parallel-review.md"
-      ]
-    },
-    "npm:pi-web-access",
-    "npm:pi-markdown-preview",
-    "npm:pi-intercom"
+    "npm:pi-paster",
+    "npm:pi-screenshots-picker",
+    "npm:pi-smart-fetch"
   ],
-  "subagents": {
-    "agentOverrides": {
-      "scout": {
-        "model": "anthropic/claude-haiku-4-5",
-        "thinking": "low"
-      },
-      "context-builder": {
-        "model": "anthropic/claude-sonnet-4-6",
-        "thinking": "medium"
-      },
-      "oracle": {
-        "model": "anthropic/claude-sonnet-4-6",
-        "thinking": "high"
-      },
-      "planner": {
-        "model": "anthropic/claude-sonnet-4-6",
-        "thinking": "high"
-      },
-      "researcher": {
-        "model": "anthropic/claude-sonnet-4-6",
-        "thinking": "medium"
-      },
-      "reviewer": {
-        "model": "anthropic/claude-sonnet-4-6",
-        "thinking": "high"
-      },
-      "worker": {
-        "model": "anthropic/claude-sonnet-4-6",
-        "thinking": "high"
-      }
-    }
+  "pi-screenshots": {
+    "sources": [
+      "~/Pictures/Screenshots/"
+    ]
   },
+  "powerline": {
+    "preset": "custom",
+    "fixedEditor": true
+  },
+  "showLastPrompt": true,
   "extensions": [
-    "extensions/first-run.ts",
-    "extensions/guardrails.ts",
-    "extensions/memory-inject.ts",
-    "extensions/adjutant-live.ts"
+    "-extensions/adjutant-editor.ts",
+    "+extensions/guardrails.ts",
+    "+extensions/gmail.ts",
+    "+extensions/adjutant-chain.ts",
+    "+extensions/adjutant-greeting.ts",
+    "+extensions/adjutant-live.ts",
+    "+extensions/cost-tracker.ts",
+    "+extensions/first-run.ts"
   ],
-  "quietStartup": true,
-  "steeringMode": "all",
-  "theme": "tokyonight",
   "themes": [
-    "-themes/tokyonight.json",
-    "-themes/synthwave.json",
-    "-themes/rose-pine.json",
-    "-themes/ocean-breeze.json",
-    "-themes/nord.json",
-    "-themes/midnight-ocean.json",
-    "-themes/gruvbox.json",
-    "-themes/everforest.json",
-    "-themes/dracula.json",
+    "-themes/catppuccin-mocha.json",
     "-themes/cyberpunk.json",
-    "-themes/catppuccin-mocha.json"
+    "-themes/dracula.json",
+    "-themes/everforest.json",
+    "-themes/gruvbox.json",
+    "-themes/midnight-ocean.json",
+    "-themes/nord.json",
+    "-themes/ocean-breeze.json",
+    "-themes/rose-pine.json",
+    "-themes/synthwave.json",
+    "+themes/tokyonight.json"
   ]
 }
