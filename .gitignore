@@ -30,3 +30,9 @@ pi-crash.log
 intercom/
 npm/
 scout-scanner.sh
+
+# Local runtime state, database, and telemetry logs
+cost-history.jsonl
+cost-sync-status.json
+logs/
+usage-data/
