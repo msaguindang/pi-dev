@@ -1,9 +1,9 @@
 {
   "lastChangelogVersion": "0.75.5",
   "defaultProvider": "google",
-  "defaultModel": "gemini-3.1-pro-preview-customtools",
+  "defaultModel": "gemini-3.5-flash",
   "defaultThinkingLevel": "high",
-  "hideThinkingBlock": true,
+  "hideThinkingBlock": false,
   "packages": [
     "npm:pi-paster",
     "npm:pi-screenshots-picker",
@@ -20,7 +20,7 @@
   },
   "showLastPrompt": true,
   "extensions": [
-    "-extensions/adjutant-editor.ts",
+    "+extensions/adjutant-editor.ts",
     "+extensions/guardrails.ts",
     "+extensions/gmail.ts",
     "+extensions/adjutant-chain.ts",
@@ -41,5 +41,12 @@
     "-themes/rose-pine.json",
     "-themes/synthwave.json",
     "+themes/tokyonight.json"
-  ]
+  ],
+  "terminal": {
+    "showTerminalProgress": true
+  },
+  "images": {
+    "autoResize": false
+  },
+  "theme": "tokyonight"
 }

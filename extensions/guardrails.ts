@@ -1,10 +1,81 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import * as fs from "fs";
+import * as path from "path";
+import * as crypto from "crypto";
+import { execSync } from "child_process";
+
+const pendingBackups = new Map<string, string | "NEW_FILE">();
 
 export default function (pi: ExtensionAPI) {
-  // ── subagent() single-agent delegation — redirect to live_agents ───────────
-  // Routing rule: DELEGATE tier (single or parallel agents) must use live_agents,
-  // not subagent(). subagent() is for CHAIN tier only (multi-step structured pipelines).
-  // Fires when: subagent({ agent, task }) called without chain/tasks/action.
+  // ── Universal Dry-Run/Validation Gateway ──────────────────────────────
+  pi.on("tool_call", async (event, ctx) => {
+    if (event.toolName === "edit" || event.toolName === "write") {
+      const targetFile = event.input.path as string;
+      if (!targetFile) return;
+
+      if (fs.existsSync(targetFile)) {
+        const hash = crypto.randomBytes(8).toString("hex");
+        const tmpPath = `/tmp/backup_${hash}_${path.basename(targetFile)}`;
+        fs.copyFileSync(targetFile, tmpPath);
+        pendingBackups.set(event.callId, tmpPath);
+      } else {
+        pendingBackups.set(event.callId, "NEW_FILE");
+      }
+    }
+  });
+
+  pi.on("tool_result", async (event, ctx) => {
+    if (event.toolName === "edit" || event.toolName === "write") {
+      const backupPath = pendingBackups.get(event.callId);
+      if (!backupPath) return;
+
+      const targetFile = event.input.path as string;
+      const ext = path.extname(targetFile);
+      const fileName = path.basename(targetFile);
+
+      let validator: string | null = null;
+      if (ext === ".sh") validator = `bash -n ${targetFile}`;
+      else if (ext === ".js") validator = `node -c ${targetFile}`;
+      else if (ext === ".json") validator = `jq empty ${targetFile}`;
+      else if (fileName === "config" && targetFile.includes("i3")) validator = `i3 -C -c ${targetFile}`;
+
+      if (validator) {
+        try {
+          execSync(validator, { stdio: "pipe" });
+        } catch (e: any) {
+          // Validation failed: revert
+          if (backupPath === "NEW_FILE") {
+            if (fs.existsSync(targetFile)) fs.unlinkSync(targetFile);
+          } else {
+            fs.copyFileSync(backupPath, targetFile);
+          }
+
+          // Override the tool result so the LLM sees the error
+          const stderr = e.stderr ? e.stderr.toString() : e.message;
+          const newResult = {
+            error: "Validation failed, file reverted.",
+            validator: validator,
+            details: stderr
+          };
+          
+          if (typeof event.result === "string") {
+            event.result = JSON.stringify(newResult);
+          } else {
+            // Assume object format
+            (event.result as any).data = newResult;
+          }
+        }
+      }
+
+      // Cleanup
+      if (backupPath !== "NEW_FILE" && fs.existsSync(backupPath)) {
+        fs.unlinkSync(backupPath);
+      }
+      pendingBackups.delete(event.callId);
+    }
+  });
+
+  // ── Existing Routing/Delegation Guardrails ──────────────────────────────
   pi.on("tool_call", async (event, ctx) => {
     if (event.toolName !== "subagent") return;
     const input = event.input as Record<string, unknown>;
@@ -18,45 +89,11 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  // ── Edit tool — confirm before modifying config files ──────────────────
-  // Guards against ask-then-execute: agent proposes a change in prose,
-  // then immediately writes it without waiting for user confirmation.
-  pi.on("tool_call", async (event, ctx) => {
-    if (event.toolName === "edit" || event.toolName === "write") {
-      const path: string = event.input.path ?? "";
-      const configPatterns = [
-        /dotfiles\/wm\//,          // all WM configs (hyprland, i3, picom, polybar, waybar)
-        /\.config\/hypr\//,        // live hyprland config dir
-        /\.config\/waybar\//,      // waybar
-        /dotfiles\/wm\/i3\//,      // i3 config
-        /guardrails\.ts/,          // this file itself
-        /AGENTS\.md/,              // agent instructions
-        /long-term\.md/,           // long-term context
-        /\.pi\/agent\/extensions\//,  // pi agent extensions — code changes must go to worker
-        /\.pi\/agent\/AGENTS\.md/,    // pi agent instructions
-        /\.agents\/context\//,        // agent context files
-        /\.agents\/standards\//,      // agent standards
-        /\.agents\/roles\//,          // agent role definitions
-      ];
-      if (configPatterns.some(p => p.test(path))) {
-        const ok = await ctx.ui.confirm(
-          "GUARDRAIL",
-          `Agent is about to edit a config file:\n${path}\n\nApply change?`
-        );
-        if (!ok) return { block: true, reason: "Blocked: config file edit denied by user" };
-      }
-      return;
-    }
-  });
-
   pi.on("tool_call", async (event, ctx) => {
     if (event.toolName !== "bash") return;
-
     const cmd = event.input.command ?? "";
-
-    // ── Principle 2: Never rm -rf a directory a running process watches ────
-    // Compositor, WM, and service config directories — deleting them mid-session
-    // causes inotify watchers to reload into empty state (lost 80 Hyprland binds).
+    
+    // Protected paths and dangerous bash ops...
     const watchedConfigDirs = [
       /rm\s+-rf?\s+~?\/?home\/[^/]+\/\.config\/hypr/,
       /rm\s+-rf?\s+~?\/?home\/[^/]+\/\.config\/waybar/,
@@ -64,31 +101,18 @@ export default function (pi: ExtensionAPI) {
       /rm\s+-rf?\s+~?\/?home\/[^/]+\/\.config\/sway/,
     ];
     if (watchedConfigDirs.some(p => p.test(cmd))) {
-      const ok = await ctx.ui.confirm(
-        "GUARDRAIL",
-        `rm -rf on a compositor/WM config directory detected:\n${cmd}\n\nA running compositor watches this path via inotify.\nDeleting it mid-session causes it to reload empty.\n\nSafe order: write new files → swap symlink → reload.\n\nProceed anyway?`
-      );
-      if (!ok) return { block: true, reason: "Blocked: rm -rf on watched compositor config directory" };
+      const ok = await ctx.ui.confirm("GUARDRAIL", `rm -rf on a compositor config detected. Proceed anyway?`);
+      if (!ok) return { block: true, reason: "Blocked" };
     }
-
-    // ── Principle 6: Confirm before mutating live system config ──────────────
-    // Any in-place overwrite of a running service's config file requires
-    // confirmation — the file is only a proposal until the process accepts it.
     const liveServiceConfigs = [
       /tee\s+.*\/(systemd|hypr|waybar|i3|sway|picom)\/.*\.conf/,
       /tee\s+.*\.service$/,
       />\s*~?\/?etc\/systemd/,
     ];
     if (liveServiceConfigs.some(p => p.test(cmd))) {
-      const ok = await ctx.ui.confirm(
-        "GUARDRAIL",
-        `Live service config overwrite detected:\n${cmd}\n\nThis writes directly to a config a running process owns.\nAlways validate with a runtime check after applying.\n\nProceed?`
-      );
-      if (!ok) return { block: true, reason: "Blocked: live service config overwrite denied" };
+      const ok = await ctx.ui.confirm("GUARDRAIL", `Live service config overwrite detected. Proceed?`);
+      if (!ok) return { block: true, reason: "Blocked" };
     }
-
-    // ── Destructive filesystem ────────────────────────────────────────────
-    // Project workspace destructive op — guard any rm -rf on known project paths
     const projectPaths = [
       process.env.NTV_DIR ?? "/data/dev/work/ntv",
       "/var/www/html",
@@ -96,71 +120,33 @@ export default function (pi: ExtensionAPI) {
     for (const projectPath of projectPaths) {
       const escaped = projectPath.replace(/[\/]/g, "\\/");
       if (new RegExp(`rm\\s+-rf?\\s+${escaped}`).test(cmd)) {
-        const ok = await ctx.ui.confirm("GUARDRAIL", `rm -rf on project path detected:\n${cmd}\n\nAllow?`);
-        if (!ok) return { block: true, reason: `Blocked: destructive op on project path ${projectPath}` };
+        const ok = await ctx.ui.confirm("GUARDRAIL", `rm -rf on project path detected. Allow?`);
+        if (!ok) return { block: true, reason: `Blocked` };
       }
     }
-
-    // ── Sensitive files ───────────────────────────────────────────────────
     if (/>\s*(\.env|auth\.json|\.runner\/\.env|ec2_key\.pem)/.test(cmd)) {
-      return { block: true, reason: "Blocked: write redirect to sensitive file detected" };
+      return { block: true, reason: "Blocked" };
     }
-
-    // ── Infisical secret dump ─────────────────────────────────────────────────────
     if (/infisical\s+(secrets|export)/.test(cmd)) {
-      return { block: true, reason: "Blocked: infisical secret dump not allowed. Use wrapper scripts: ticktick-cli.sh, git-mcp.sh" };
+      return { block: true, reason: "Blocked" };
     }
-
-    // ── Git push guardrails ───────────────────────────────────────────────
     if (/git\s+push/.test(cmd)) {
-      // Force push — always block
-      if (/--force|-f/.test(cmd)) {
-        return { block: true, reason: "Blocked: force push not allowed" };
+      if (/--force|(?<![a-zA-Z])-f(?![a-zA-Z])/.test(cmd)) {
+        return { block: true, reason: "Blocked" };
       }
-
-      // Push to production branches — confirm
       const productionBranches = ["main", "master", process.env.DEPLOY_BRANCH ?? "dev-deploy-environment"];
       const branchPattern = new RegExp(`\\b(${productionBranches.join("|")})\\b`);
       if (branchPattern.test(cmd)) {
-        const ok = await ctx.ui.confirm("GUARDRAIL", `git push to production branch detected:\n${cmd}\n\nAllow?`);
-        if (!ok) return { block: true, reason: "Blocked: push to production branch denied" };
+        const ok = await ctx.ui.confirm("GUARDRAIL", `git push to production branch detected. Allow?`);
+        if (!ok) return { block: true, reason: "Blocked" };
       }
     }
-
-    // ── SSH to production RPi — confirm ───────────────────────────────────
     if (/ssh|scp|sshpass/.test(cmd)) {
-      const ok = await ctx.ui.confirm("GUARDRAIL", `SSH/SCP operation detected:\n${cmd}\n\nAllow?`);
-      if (!ok) return { block: true, reason: "Blocked: SSH operation denied" };
+      const ok = await ctx.ui.confirm("GUARDRAIL", `SSH/SCP operation detected. Allow?`);
+      if (!ok) return { block: true, reason: "Blocked" };
     }
-
-    // ── npm publish / dangerous global installs ───────────────────────────
     if (/npm\s+publish/.test(cmd)) {
-      return { block: true, reason: "Blocked: npm publish requires manual execution" };
-    }
-
-    // ── Deploy pipeline tools — configurable via PROJECT_DEPLOY_TOOLS env var ──
-    const deployTools = (process.env.PROJECT_DEPLOY_TOOLS ?? "forgejo,aptly,electron-builder").split(",").filter(Boolean);
-    const deployPattern = new RegExp(deployTools.join("|"));
-    if (deployTools.length > 0 && deployPattern.test(cmd)) {
-      const ok = await ctx.ui.confirm("GUARDRAIL", `Deploy pipeline operation detected:\n${cmd}\n\nAllow?`);
-      if (!ok) return { block: true, reason: "Blocked: deploy pipeline operation denied" };
-    }
-
-    // ── Local tarball protection — configurable via PROJECT_LOCAL_PACKAGES env var ──
-    const localPackages = (process.env.PROJECT_LOCAL_PACKAGES ?? "nct-vistar").split(",").filter(Boolean);
-    for (const pkg of localPackages) {
-      if (new RegExp(`npm\\s+install.*${pkg}`).test(cmd)) {
-        return { block: true, reason: `Blocked: ${pkg} must use local tarball — never fetch from npm` };
-      }
-    }
-
-    // ── Worktree enforcement ───────────────────────────────────────────────
-    if (/git\s+(checkout\s+-b|switch\s+-c)/.test(cmd) && !/git\s+worktree\s+add/.test(cmd)) {
-      const ok = await ctx.ui.confirm(
-        "GUARDRAIL",
-        `Branch creation without worktree detected:\n${cmd}\n\nUse 'git worktree add' for implementation work. Allow anyway?`
-      );
-      if (!ok) return { block: true, reason: "Blocked: use git worktree add for isolated branch work" };
+      return { block: true, reason: "Blocked" };
     }
   });
 }
