@@ -29,9 +29,17 @@ export default function (pi: ExtensionAPI) {
                     ctx.modelRegistry.find("anthropic", "claude-sonnet-4-5") ||
                     ctx.modelRegistry.find("anthropic", "claude-sonnet-4-5-20250929");
       if (model && ctx.model?.id !== model.id) {
-        const success = await pi.setModel(model);
-        if (success) {
-          ctx.ui.notify(`Routed to ${model.name || model.id} (high-capability)`, "info");
+        const ok = await ctx.ui.confirm(
+          "MODEL UPGRADE",
+          `This task is classified as complex (${decision}).\nDo you want to temporarily upgrade to Claude Sonnet?\n\n(Selecting Cancel will keep the session on Gemini)`
+        );
+        if (ok) {
+          const success = await pi.setModel(model);
+          if (success) {
+            ctx.ui.notify(`Upgraded to ${model.name || model.id} (high-capability)`, "success");
+          }
+        } else {
+          ctx.ui.notify(`Staying on ${ctx.model?.id} as requested`, "info");
         }
       }
     }
