@@ -145,7 +145,7 @@ function buildLeftColumn(data: WelcomeData, colWidth: number): string[] {
 
 function buildRightColumn(data: WelcomeData, colWidth: number): string[] {
 	const hChar = "─";
-	const separator = ` ${dim(hChar.repeat(colWidth - 2))}`;
+	const separator = truncateToWidth(` ${dim(hChar.repeat(colWidth - 2))}`, colWidth);
 	
 	// Session lines
 	const sessionLines: string[] = [];
@@ -226,10 +226,10 @@ function renderWelcomeBox(
 	const title = " adjutant ";
 	const titlePrefix = dim(hChar.repeat(3));
 	const titleStyled = titlePrefix + fgOnly("model", title);
-	const titleVisLen = 3 + visibleWidth(title);
+	const titleVisLen = visibleWidth(titlePrefix) + visibleWidth(title);
 	const afterTitle = boxWidth - 2 - titleVisLen;
 	const afterTitleText = afterTitle > 0 ? dim(hChar.repeat(afterTitle)) : "";
-	lines.push(tl + titleStyled + afterTitleText + tr);
+	lines.push(truncateToWidth(tl + titleStyled + afterTitleText + tr, boxWidth));
 	
 	// Content rows
 	const maxRows = Math.max(leftLines.length, rightLines.length);
@@ -672,12 +672,12 @@ function renderCard(name: string, subtitle: string, cardWidth: number): string[]
 		return bord("\u2502") + bg + content + bg + pad + BG_RESET + bord("\u2502");
 	};
 
-	const nameRaw = name.length > inner - 2 ? name.slice(0, inner - 4) + "..." : name;
-	const subRaw  = subtitle.length > inner - 2 ? subtitle.slice(0, inner - 4) + "..." : subtitle;
+	const nameRaw = truncateToWidth(name, inner - 2, "...");
+	const subRaw  = truncateToWidth(subtitle, inner - 2, "...");
 
-	const nameLine   = border(" " + br + "\x1b[1m" + nameRaw + "\x1b[22m" + FG_RESET, 1 + nameRaw.length);
+	const nameLine   = border(" " + br + "\x1b[1m" + nameRaw + "\x1b[22m" + FG_RESET, 1 + visibleWidth(nameRaw));
 	const statusLine = border(" " + "\x1b[2m" + "\u25cb idle" + "\x1b[22m", 7);
-	const subLine    = border(" " + "\x1b[2m" + subRaw + "\x1b[22m", 1 + subRaw.length);
+	const subLine    = border(" " + "\x1b[2m" + subRaw + "\x1b[22m", 1 + visibleWidth(subRaw));
 	const ulLine     = border(" " + "\x1b[2m" + "_" + "\x1b[22m", 2);
 
 	return [
