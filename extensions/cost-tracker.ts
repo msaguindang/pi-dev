@@ -12,6 +12,7 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { visibleWidth } from "@earendil-works/pi-tui";
 
 const COST_HISTORY = join(homedir(), ".pi", "agent", "cost-history.jsonl");
 
@@ -97,9 +98,7 @@ export default function (pi: ExtensionAPI): void {
 					const left = theme.fg("dim", `${prevStr}Session: $${sessionCost.toFixed(4)}`);
 					const right = statuses ? ` ${statuses} ` : "";
 					
-					const visibleLeft = left.replace(/\x1b\[[0-9;]*m/g, "");
-					const visibleRight = right.replace(/\x1b\[[0-9;]*m/g, "");
-					const pad = " ".repeat(Math.max(1, width - visibleLeft.length - visibleRight.length));
+					const pad = " ".repeat(Math.max(1, width - visibleWidth(left) - visibleWidth(right)));
 					
 					return [left + pad + right];
 				},
