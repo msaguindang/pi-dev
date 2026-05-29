@@ -68,12 +68,16 @@ class EmptyFooter implements Component {
 	invalidate(): void {}
 }
 
+// Module-level state shared across sessions
+// Also the spinner
+let _isWorking = false;
+let _spinnerIndex = 0;
+let _activeTui: TUI | undefined;
+// const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]; // braille (original)
+const spinnerFrames = ["✱", "✲", "✳", "✲"]; // cross/asterisk
+
 export default function (pi: ExtensionAPI) {
-	let isWorking = false;
-	let spinnerIndex = 0;
 	let spinnerTimer: ReturnType<typeof setInterval> | undefined;
-	let activeTui: TUI | undefined;
-	const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 	const stopSpinner = () => {
 		if (spinnerTimer) {
@@ -83,24 +87,24 @@ export default function (pi: ExtensionAPI) {
 	};
 
 	pi.on("agent_start", () => {
-		isWorking = true;
+		_isWorking = true;
 		stopSpinner();
 		spinnerTimer = setInterval(() => {
-			spinnerIndex = (spinnerIndex + 1) % spinnerFrames.length;
-			activeTui?.requestRender();
-		}, 80);
-		activeTui?.requestRender();
+			_spinnerIndex = (_spinnerIndex + 1) % spinnerFrames.length;
+			_activeTui?.requestRender();
+		}, 150);
+		_activeTui?.requestRender();
 	});
 
 	pi.on("agent_end", () => {
-		isWorking = false;
+		_isWorking = false;
 		stopSpinner();
-		activeTui?.requestRender();
+		_activeTui?.requestRender();
 	});
 
 	pi.on("session_shutdown", () => {
 		stopSpinner();
-		activeTui = undefined;
+		_activeTui = undefined;
 	});
 
 	pi.on("session_start", (_event, ctx) => {
@@ -116,53 +120,59 @@ export default function (pi: ExtensionAPI) {
 				.catch(() => undefined);
 			const stdout = result?.stdout.trim();
 			branch = stdout && stdout.length > 0 ? stdout : undefined;
-			activeTui?.requestRender();
+			_activeTui?.requestRender();
 		};
 		void refreshBranch();
 
-		class AdjutantEditor extends CustomEditor {
-			constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
-				super(tui, theme, keybindings, { paddingX: 0 });
-				activeTui = tui;
-				require("fs").appendFileSync("/tmp/pi-debug", `CTOR called\n`);
+		// Intercept setEditorComponent so any editor installed by any extension
+		// (including pi-paster which runs after us) gets our border decoration.
+		const origSetEditorComponent = ctx.ui.setEditorComponent;
+		ctx.ui.setEditorComponent = (factory) => {
+			if (!factory) {
+				origSetEditorComponent(factory);
+				return;
 			}
+			origSetEditorComponent((tui, theme, keybindings) => {
+				const editor = factory(tui, theme, keybindings);
+				_activeTui = tui;
+				const origRender = editor.render.bind(editor);
+				editor.render = (width: number): string[] => {
+					const lines = origRender(width);
+					if (lines.length < 2) return lines;
+					// Strip cursor marker so Pi skips hardware cursor repositioning
+					// outside synchronized output — those cursor moves disrupt WezTerm copy mode selection.
+					const CURSOR_MARKER = "\x1b_pi:c\x07";
+					for (let i = 0; i < lines.length; i++) {
+						if (lines[i]!.includes(CURSOR_MARKER)) {
+							lines[i] = lines[i]!.replace(CURSOR_MARKER, "");
+							break;
+						}
+					}
+					// Session name on the upper-right, hide for now
+					// const topRight = `\x1b[48;2;122;162;247m\x1b[38;2;26;27;38m ${displayName} \x1b[0m`;
+					const topRight = '';
+					const topLeft = _isWorking
+						? ctx.ui.theme.fg("accent", ` ${spinnerFrames[_spinnerIndex]} `)
+						: "";
+					const borderFn = (text: string) => (editor as any).borderColor(text);
+					lines[0] = fitBorder(topLeft, topRight, width, borderFn);
+					lines[lines.length - 1] = fitBorder("", "", width, borderFn);
+					return lines;
+				};
+				return editor;
+			});
+		};
 
-			render(width: number): string[] {
-				require("fs").appendFileSync("/tmp/pi-debug", `RENDER w=${width}\n`);
-				const lines = super.render(width);
-				if (lines.length < 2) return lines;
-
-				const thm = ctx.ui.theme;
-				const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "no model";
-				const thinking = pi.getThinkingLevel();
-
-				// Top border: spinner (when working) on left, session name on right
-				const sessionName = pi.getSessionName();
-				const topLeft = isWorking
-					? thm.fg("accent", ` ${spinnerFrames[spinnerIndex]} `)
-					: "";
-				// Session name pill — themed accent text wrapped in brackets for universal terminal compatibility
-				const displayName = sessionName && sessionName.trim() !== "" ? sessionName : "Current Session";
-				const topRight = thm.fg("accent", `[ ${displayName} ]`);
-
-				const borderColor = (text: string) => this.borderColor(text);
-
-				// Top border: spinner + session pill
-				lines[0] = fitBorder(topLeft, topRight, width, borderColor);
-				// Bottom border: clean line (info moved to belowEditor widget)
-				lines[lines.length - 1] = fitBorder("", "", width, borderColor);
-				return lines;
-			}
-		}
-
+		// Install base CustomEditor; pi-paster (or any other extension) will
+		// override via our interceptor above, keeping the border decoration.
 		ctx.ui.setEditorComponent(
-			(tui, theme, keybindings) => new AdjutantEditor(tui, theme, keybindings),
+			(tui, theme, keybindings) => new CustomEditor(tui, theme, keybindings),
 		);
 
 		// Info line below the editor border
 		ctx.ui.setWidget(
 			"adjutant-info",
-			(tui, theme) => ({
+			(_tui, theme) => ({
 				render(width: number): string[] {
 					const thinking = pi.getThinkingLevel();
 					const left = theme.fg(
@@ -173,8 +183,19 @@ export default function (pi: ExtensionAPI) {
 						"dim",
 						` ${ctx.model?.id ?? "no model"} · ${formatThinking(thinking)} · ${formatContext(ctx)} `,
 					);
-					const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));
-					return [left + " ".repeat(gap) + right];
+					const minGap = 1;
+					let leftText = left;
+					let rightText = right;
+					const maxLeft = width - visibleWidth(rightText) - minGap;
+					if (visibleWidth(leftText) > maxLeft) {
+						leftText = truncateToWidth(leftText, Math.max(0, maxLeft), "…");
+					}
+					if (visibleWidth(leftText) + visibleWidth(rightText) + minGap > width) {
+						const maxRight = width - visibleWidth(leftText) - minGap;
+						rightText = truncateToWidth(rightText, Math.max(0, maxRight), "…");
+					}
+					const gap = Math.max(minGap, width - visibleWidth(leftText) - visibleWidth(rightText));
+					return [leftText + " ".repeat(gap) + rightText];
 				},
 				invalidate() {},
 			}),

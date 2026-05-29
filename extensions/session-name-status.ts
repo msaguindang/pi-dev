@@ -18,6 +18,17 @@ export default function init(pi: ExtensionAPI): void {
 
   // Reactive Event Listeners
   pi.on("session_start", (_event, ctx) => {
+    // Intercept both built-in /name and custom /name-session commands by wrapping appendSessionInfo
+    const sm = ctx.sessionManager as any;
+    if (sm && typeof sm.appendSessionInfo === "function" && !sm.__patched) {
+      const originalAppend = sm.appendSessionInfo.bind(sm);
+      sm.appendSessionInfo = (name: string) => {
+        originalAppend(name);
+        // Update TUI immediately when the session name is appended
+        updateStatus(ctx);
+      };
+      sm.__patched = true;
+    }
     updateStatus(ctx);
   });
 
@@ -32,8 +43,6 @@ export default function init(pi: ExtensionAPI): void {
       const newName = args.trim();
       if (newName) {
         pi.setSessionName(newName);
-        // Update UI immediately
-        updateStatus(ctx);
         ctx.ui.notify(`Session name set to: "${newName}"`, "success");
       } else {
         const current = pi.getSessionName();

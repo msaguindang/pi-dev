@@ -223,7 +223,7 @@ function renderWelcomeBox(
 	const lines: string[] = [];
 	
 	// Top border with title
-	const title = " pi agent ";
+	const title = " adjutant ";
 	const titlePrefix = dim(hChar.repeat(3));
 	const titleStyled = titlePrefix + fgOnly("model", title);
 	const titleVisLen = 3 + visibleWidth(title);
@@ -249,7 +249,7 @@ function renderWelcomeBox(
 
 class WelcomeComponent implements Component {
 	private data: WelcomeData;
-	private countdown: number = 10;  // 10 seconds for adjutant
+	private countdown: number = 20;  // 20 seconds for adjutant
 
 	constructor(
 		modelName: string,
@@ -987,19 +987,8 @@ export default function (pi: ExtensionAPI) {
 			dismissWelcome(ctx);
 		}
 
-		// Set greeting widget (always shown until agent_start)
-		ctx.ui.setWidget(WIDGET_KEY, (tui, theme) => {
-			const widget = new GreetingWidget(theme);
-
-			// Tick every second so the clock stays live
-			if (clockInterval) clearInterval(clockInterval);
-			clockInterval = setInterval(() => tui.requestRender(), 1000);
-
-			return {
-				render: (w: number) => widget.render(w),
-				invalidate: () => widget.invalidate(),
-			};
-		});
+		// Startup greeting widget disabled for a cleaner, pristine workspace.
+		// Roster remains accessible on-demand via the /agents slash command.
 	});
 
 	pi.on("agent_start", (_event, ctx) => {
