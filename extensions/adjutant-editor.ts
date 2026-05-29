@@ -69,41 +69,21 @@ class EmptyFooter implements Component {
 }
 
 // Module-level state shared across sessions
-// Also the spinner
 let _isWorking = false;
-let _spinnerIndex = 0;
 let _activeTui: TUI | undefined;
-// const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]; // braille (original)
-const spinnerFrames = ["✱", "✲", "✳", "✲"]; // cross/asterisk
 
 export default function (pi: ExtensionAPI) {
-	let spinnerTimer: ReturnType<typeof setInterval> | undefined;
-
-	const stopSpinner = () => {
-		if (spinnerTimer) {
-			clearInterval(spinnerTimer);
-			spinnerTimer = undefined;
-		}
-	};
-
 	pi.on("agent_start", () => {
 		_isWorking = true;
-		stopSpinner();
-		spinnerTimer = setInterval(() => {
-			_spinnerIndex = (_spinnerIndex + 1) % spinnerFrames.length;
-			_activeTui?.requestRender();
-		}, 150);
 		_activeTui?.requestRender();
 	});
 
 	pi.on("agent_end", () => {
 		_isWorking = false;
-		stopSpinner();
 		_activeTui?.requestRender();
 	});
 
 	pi.on("session_shutdown", () => {
-		stopSpinner();
 		_activeTui = undefined;
 	});
 
@@ -152,7 +132,7 @@ export default function (pi: ExtensionAPI) {
 					// const topRight = `\x1b[48;2;122;162;247m\x1b[38;2;26;27;38m ${displayName} \x1b[0m`;
 					const topRight = '';
 					const topLeft = _isWorking
-						? ctx.ui.theme.fg("accent", ` ${spinnerFrames[_spinnerIndex]} `)
+						? ctx.ui.theme.fg("accent", ` ✱ `)
 						: "";
 					const borderFn = (text: string) => (editor as any).borderColor(text);
 					lines[0] = fitBorder(topLeft, topRight, width, borderFn);
