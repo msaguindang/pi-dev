@@ -75,20 +75,6 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  // ── Existing Routing/Delegation Guardrails ──────────────────────────────
-  pi.on("tool_call", async (event, ctx) => {
-    if (event.toolName !== "subagent") return;
-    const input = event.input as Record<string, unknown>;
-    const isSingleAgent = input.agent && input.task && !input.chain && !input.tasks && !input.action;
-    if (isSingleAgent) {
-      const ok = await ctx.ui.confirm(
-        "GUARDRAIL — Routing",
-        `Single-agent delegation detected:\n  subagent({ agent: "${input.agent}", task: ... })\n\nRouting rule: DELEGATE tier must use live_agents, not subagent().\nsubagent() is for CHAIN tier (multi-step pipelines with handoffs).\n\nlive_agents([{ agent: "${input.agent}", task: ... }])\n\nProceed with subagent() anyway?`
-      );
-      if (!ok) return { block: true, reason: `Blocked: use live_agents([{ agent: "${input.agent}", task }]) for single-agent delegation` };
-    }
-  });
-
   pi.on("tool_call", async (event, ctx) => {
     if (event.toolName !== "bash") return;
     const cmd = event.input.command ?? "";
