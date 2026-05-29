@@ -141,7 +141,7 @@ function renderChain(state: ChainState, termWidth: number): string[] {
 				}
 			}
 		}
-		lines.push(" " + parts.join(""));
+		lines.push(truncateToWidth(" " + parts.join(""), termWidth));
 	}
 
 	lines.push("");
@@ -259,7 +259,7 @@ function renderParallel(state: ParallelState, termWidth: number): string[] {
 		const cards = row.map((step, idx) => renderChainCard(step, idx, tempState, cardWidth));
 		while (cards.length < cols) cards.push(Array(4).fill(" ".repeat(cardWidth)));
 		const h = cards[0]?.length ?? 4;
-		for (let l = 0; l < h; l++) lines.push(" " + cards.map(c => c[l] ?? "").join(" ".repeat(GAP)));
+		for (let l = 0; l < h; l++) lines.push(truncateToWidth(" " + cards.map(c => c[l] ?? "").join(" ".repeat(GAP)), termWidth));
 		lines.push("");
 	}
 	return lines;
