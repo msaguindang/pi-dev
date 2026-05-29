@@ -7,7 +7,8 @@
   "packages": [
     "npm:pi-paster",
     "npm:pi-screenshots-picker",
-    "npm:pi-smart-fetch"
+    "npm:pi-smart-fetch",
+    "npm:pi-subagents"
   ],
   "pi-screenshots": {
     "sources": [
@@ -23,7 +24,6 @@
     "+extensions/adjutant-editor.ts",
     "+extensions/guardrails.ts",
     "+extensions/gmail.ts",
-    "+extensions/adjutant-chain.ts",
     "+extensions/adjutant-greeting.ts",
     "+extensions/cost-tracker.ts",
     "+extensions/first-run.ts",
