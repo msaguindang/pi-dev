@@ -71,19 +71,26 @@ class EmptyFooter implements Component {
 // Module-level state shared across sessions
 let _isWorking = false;
 let _activeTui: TUI | undefined;
+let _renderTimer: ReturnType<typeof setInterval> | undefined;
 
 export default function (pi: ExtensionAPI) {
 	pi.on("agent_start", () => {
 		_isWorking = true;
+		if (_renderTimer) clearInterval(_renderTimer);
+		_renderTimer = setInterval(() => {
+			_activeTui?.requestRender();
+		}, 80);
 		_activeTui?.requestRender();
 	});
 
 	pi.on("agent_end", () => {
 		_isWorking = false;
+		if (_renderTimer) { clearInterval(_renderTimer); _renderTimer = undefined; }
 		_activeTui?.requestRender();
 	});
 
 	pi.on("session_shutdown", () => {
+		if (_renderTimer) { clearInterval(_renderTimer); _renderTimer = undefined; }
 		_activeTui = undefined;
 	});
 
