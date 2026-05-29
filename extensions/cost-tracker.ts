@@ -6,7 +6,6 @@
  * to ~/.pi/agent/cost-history.jsonl.
  *
  * Works in every pi process automatically (orchestrator + all subagents).
- * For live_agents subprocesses, adjutant-live.ts passes --extension explicitly.
  */
 
 import { appendFileSync, mkdirSync } from "node:fs";

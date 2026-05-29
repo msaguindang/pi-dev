@@ -16,7 +16,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
-// ── Colors (verbatim from adjutant-live.ts) ───────────────────────────────
+// ── Colors ────────────────────────────────────────────────────────────────
 
 const AGENT_COLORS: Record<string, { bg: string; br: string }> = {
 	"scout":           { bg: "\x1b[48;2;12;40;65m",  br: "\x1b[38;2;0;180;220m"  },

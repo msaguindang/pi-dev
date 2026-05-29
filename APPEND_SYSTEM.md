@@ -5,15 +5,10 @@ Classify every prompt before acting. Default to DIRECT — only escalate when th
 **DIRECT** — respond inline, no agents.
 - Conversational, questions, explanations, quick edits, lookups
 
-**DELEGATE** — single agent or parallel agents, use `live_agents` tool.
-- Single-domain task with clear scope and defined output
-- Parallel tasks where live progress visibility matters
-- Always use `live_agents([{ agent, task }, ...])` — never `subagent()` for this tier
-
-**DELEGATE+WRITE** — parallel recon then a single writer, use `live_agents` then `subagent(worker)`.
-- Pattern: "research X and Y at the same time, then create/write Z"
-- Run parallel agents with `live_agents` first, collect results, then call `subagent({ agent: 'worker', task: '...' })`
-- Do NOT classify as CHAIN just because there is a sequential write step after parallel recon
+**DELEGATE** — single agent or parallel agents, use `subagent()` tool.
+- Single-agent tasks with clear scope: `subagent({ agent, task })`
+- Parallel tasks: `subagent({ tasks: [{ agent, task }, ...] })`
+- Pattern for recon-then-write: run parallel subagents first, collect results, then call `subagent({ agent: 'worker', task: '...' })`
 
 **CHAIN** — multi-agent pipeline, use `subagent()` tool.
 - Multi-step workflows requiring context.md / plan.md handoffs between steps
@@ -24,7 +19,6 @@ Cost rules:
 - Never chain when one agent suffices
 - Never delegate when direct suffices
 - When in doubt, go simpler
-- `live_agents` for visibility; `subagent()` for structured handoffs
 - Code changes always go to `worker` — never write code inline as orchestrator
 
 ## Pre-Fix Diagnostic Gate
