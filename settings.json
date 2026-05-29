@@ -1,7 +1,7 @@
 {
-  "lastChangelogVersion": "0.75.5",
-  "defaultProvider": "google",
-  "defaultModel": "gemini-3.5-flash",
+  "lastChangelogVersion": "0.77.0",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-sonnet-4-6",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "packages": [
@@ -25,9 +25,9 @@
     "+extensions/gmail.ts",
     "+extensions/adjutant-chain.ts",
     "+extensions/adjutant-greeting.ts",
-    "+extensions/adjutant-live.ts",
     "+extensions/cost-tracker.ts",
-    "+extensions/first-run.ts"
+    "+extensions/first-run.ts",
+    "+extensions/session-name-status.ts"
   ],
   "themes": [
     "-themes/catppuccin-mocha.json",
@@ -48,5 +48,6 @@
   "images": {
     "autoResize": false
   },
-  "theme": "tokyonight"
+  "theme": "tokyonight",
+  "quietStartup": true
 }
