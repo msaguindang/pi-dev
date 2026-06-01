@@ -33,7 +33,8 @@
     "+extensions/first-run.ts",
     "+extensions/session-name-status.ts",
     "+extensions/context-resolver.ts",
-    "+extensions/secure-tools.ts"
+    "+extensions/secure-tools.ts",
+    "-extensions/ToolGuard.ts"
   ],
   "themes": [
     "-themes/catppuccin-mocha.json",

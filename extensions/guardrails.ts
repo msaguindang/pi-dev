@@ -78,7 +78,8 @@ export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event, ctx) => {
     if (event.toolName !== "bash") return;
     const cmd = event.input.command ?? "";
-    
+    let rmHandled = false;
+
     // Protected paths and dangerous bash ops...
     const watchedConfigDirs = [
       /rm\s+-rf?\s+~?\/?home\/[^/]+\/\.config\/hypr/,
@@ -88,6 +89,7 @@ export default function (pi: ExtensionAPI) {
     ];
     if (watchedConfigDirs.some(p => p.test(cmd))) {
       const ok = await ctx.ui.confirm("GUARDRAIL", `rm -rf on a compositor config detected. Proceed anyway?`);
+      rmHandled = true;
       if (!ok) return { block: true, reason: "Blocked" };
     }
     const liveServiceConfigs = [
@@ -107,7 +109,16 @@ export default function (pi: ExtensionAPI) {
       const escaped = projectPath.replace(/[\/]/g, "\\/");
       if (new RegExp(`rm\\s+-rf?\\s+${escaped}`).test(cmd)) {
         const ok = await ctx.ui.confirm("GUARDRAIL", `rm -rf on project path detected. Allow?`);
+        rmHandled = true;
         if (!ok) return { block: true, reason: `Blocked` };
+      }
+    }
+    // General rm -rf catch-all (paths not covered by specific guards above)
+    if (/rm\s+-rf?\s+/.test(cmd) && !rmHandled) {
+      const isIsolated = cmd.includes("/tmp/") && !cmd.includes("~") && !cmd.includes("/home/");
+      if (!isIsolated) {
+        const ok = await ctx.ui.confirm("GUARDRAIL", `rm -rf detected. Proceed?`);
+        if (!ok) return { block: true, reason: "Blocked" };
       }
     }
     if (/>\s*(\.env|auth\.json|\.runner\/\.env|ec2_key\.pem)/.test(cmd)) {
@@ -127,12 +138,23 @@ export default function (pi: ExtensionAPI) {
         if (!ok) return { block: true, reason: "Blocked" };
       }
     }
+    if (/git\s+reset\s+--hard/.test(cmd)) {
+      const isIsolated = cmd.includes("/tmp/") && !cmd.includes("~") && !cmd.includes("/home/");
+      if (!isIsolated) {
+        const ok = await ctx.ui.confirm("GUARDRAIL", `git reset --hard detected. Proceed?`);
+        if (!ok) return { block: true, reason: "Blocked" };
+      }
+    }
     if (/ssh|scp|sshpass/.test(cmd)) {
       const ok = await ctx.ui.confirm("GUARDRAIL", `SSH/SCP operation detected. Allow?`);
       if (!ok) return { block: true, reason: "Blocked" };
     }
     if (/npm\s+publish/.test(cmd)) {
       return { block: true, reason: "Blocked" };
+    }
+    if (/apt(-get)?\s+(remove|purge)/.test(cmd)) {
+      const ok = await ctx.ui.confirm("GUARDRAIL", `apt remove/purge detected. Proceed?`);
+      if (!ok) return { block: true, reason: "Blocked" };
     }
   });
 }
