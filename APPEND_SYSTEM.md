@@ -5,10 +5,10 @@ Classify every prompt before acting. Default to DIRECT — only escalate when th
 **DIRECT** — respond inline, no agents.
 - Conversational, questions, explanations, quick edits, lookups
 
-**DELEGATE** — single agent or parallel agents, use `subagent()` tool.
-- Single-agent tasks with clear scope: `subagent({ agent, task })`
-- Parallel tasks: `subagent({ tasks: [{ agent, task }, ...] })`
-- Pattern for recon-then-write: run parallel subagents first, collect results, then call `subagent({ agent: 'worker', task: '...' })`
+**DELEGATE** — single agent or parallel agents, use `live_agents()` tool.
+- Single-agent: `live_agents([{ agent, task }])`
+- Parallel: `live_agents([{ agent, task }, { agent, task }])`
+- Pattern for recon-then-write: parallel `live_agents` scouts first, collect results, then `live_agents([{ agent: 'worker', task }])`
 
 **CHAIN** — multi-agent pipeline, use `subagent()` tool.
 - Multi-step workflows requiring context.md / plan.md handoffs between steps
@@ -32,3 +32,12 @@ If a fix fails once: **stop**. Do not vary the same fix. Step up one abstraction
 For toolchain / infra problems: **probe the environment first** — inventory what is installed, what versions, what the compositor/OS/runtime supports — before proposing any solution.
 
 Skip this gate only for DIRECT responses (no code, no delegation).
+
+## TUI Rendering (pi sessions only)
+
+Override standard markdown for pi terminal output:
+- Unordered lists: use `•` instead of `-`
+- Numbered lists: use `**1.** ` instead of `1. ` (prevents renderer collapsing)
+- Leave blank line between every list item
+
+This bypasses pi TUI's markdown list collapsing behavior. Does not apply to Claude Code sessions.

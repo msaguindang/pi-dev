@@ -25,11 +25,15 @@
     "+extensions/adjutant-editor.ts",
     "+extensions/guardrails.ts",
     "+extensions/gmail.ts",
+    "+extensions/PromptClassifier.ts",
+    "+extensions/PromptRouter.ts",
     "+extensions/adjutant-greeting.ts",
     "+extensions/cost-tracker.ts",
+    "+extensions/shadow-evaluator.ts",
     "+extensions/first-run.ts",
     "+extensions/session-name-status.ts",
-    "+extensions/context-resolver.ts"
+    "+extensions/context-resolver.ts",
+    "+extensions/secure-tools.ts"
   ],
   "themes": [
     "-themes/catppuccin-mocha.json",
