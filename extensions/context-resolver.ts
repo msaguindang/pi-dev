@@ -47,7 +47,7 @@ export default function (pi: ExtensionAPI) {
       const lines: string[] = [];
       if (resolved.length) lines.push(`✓ ${resolved.join(", ")}`);
       if (failed.length) lines.push(`✗ MISSING: ${failed.join(", ")}`);
-      ctx.ui.notify(`[context-resolver] ${lines.join(" | ")}`, failed.length > 0 ? "warning" : "info");
+      ctx.ui.notify(lines.join(" | "), failed.length > 0 ? "warning" : "info");
     }
 
     return {
