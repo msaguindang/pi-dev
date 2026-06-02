@@ -72,14 +72,17 @@ class EmptyFooter implements Component {
 let _isWorking = false;
 let _activeTui: TUI | undefined;
 let _renderTimer: ReturnType<typeof setInterval> | undefined;
+const SPINNER_FRAMES = ["✱", "✲", "✳", "✲"];
+let _spinnerIndex = 0;
 
 export default function (pi: ExtensionAPI) {
 	pi.on("agent_start", () => {
 		_isWorking = true;
 		if (_renderTimer) clearInterval(_renderTimer);
 		_renderTimer = setInterval(() => {
+			_spinnerIndex = (_spinnerIndex + 1) % SPINNER_FRAMES.length;
 			_activeTui?.requestRender();
-		}, 80);
+		}, 150);
 		_activeTui?.requestRender();
 	});
 
@@ -139,7 +142,7 @@ export default function (pi: ExtensionAPI) {
 					// const topRight = `\x1b[48;2;122;162;247m\x1b[38;2;26;27;38m ${displayName} \x1b[0m`;
 					const topRight = '';
 					const topLeft = _isWorking
-						? ctx.ui.theme.fg("accent", ` ✱ `)
+						? ctx.ui.theme.fg("accent", ` ${SPINNER_FRAMES[_spinnerIndex]!} `)
 						: "";
 					const borderFn = (text: string) => (editor as any).borderColor(text);
 					lines[0] = fitBorder(topLeft, topRight, width, borderFn);
