@@ -41,3 +41,7 @@ Override standard markdown for pi terminal output:
 - Leave blank line between every list item
 
 This bypasses pi TUI's markdown list collapsing behavior. Does not apply to Claude Code sessions.
+
+## Domain Context
+
+For NTV ecosystem, harness decisions, extension patterns, hyprland, or wezterm specifics — invoke `pi-knowledge-search` before acting. This context is NOT auto-loaded. Assume it is absent until retrieved.
