@@ -18,7 +18,7 @@ export function classifyPrompt(text: string): RoutingDecision {
 
     // DELEGATE: Research, analysis, parallel tasks, scoping
     if (
-        /analyze|research|parallel|scope|investigate|explore|recon/i.test(lowercaseText)
+        /analyze|research|parallel|scope|investigate|explore|recon|scout|summarize|audit|survey/i.test(lowercaseText)
     ) {
         return 'DELEGATE';
     }
