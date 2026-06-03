@@ -78,8 +78,8 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
-		ctx.ui.setWorkingVisible(true);
 		ctx.ui.setFooter(() => new EmptyFooter());
+		ctx.ui.setWorkingIndicator({ frames: [] });
 
 		let branch: string | undefined;
 
