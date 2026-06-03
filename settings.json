@@ -1,15 +1,21 @@
 {
   "lastChangelogVersion": "0.78.0",
   "defaultProvider": "google",
-  "defaultModel": "gemini-3.5-flash",
-  "defaultThinkingLevel": "high",
+  "defaultModel": "gemini-3.1-pro-preview-customtools",
+  "defaultThinkingLevel": "low",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-paster",
     "npm:pi-screenshots-picker",
     "npm:pi-smart-fetch",
     "npm:pi-subagents",
-    "npm:pi-intercom"
+    "npm:pi-intercom",
+    {
+      "source": "npm:pi-web-access",
+      "extensions": [
+        "+index.ts"
+      ]
+    }
   ],
   "pi-screenshots": {
     "sources": [
@@ -24,6 +30,8 @@
   "extensions": [
     "+extensions/adjutant-editor.ts",
     "+extensions/guardrails.ts",
+    "+extensions/bash-truncator.ts",
+    "+extensions/tool-cache.ts",
     "+extensions/gmail.ts",
     "+extensions/PromptClassifier.ts",
     "+extensions/PromptRouter.ts",
@@ -34,7 +42,9 @@
     "+extensions/session-name-status.ts",
     "+extensions/context-resolver.ts",
     "+extensions/secure-tools.ts",
-    "-extensions/ToolGuard.ts"
+    "+extensions/tui-dryrun.ts",
+    "+extensions/extension-watcher.ts",
+    "-extensions/memory-inject.ts"
   ],
   "themes": [
     "-themes/catppuccin-mocha.json",
@@ -56,5 +66,5 @@
     "autoResize": false
   },
   "theme": "tokyonight",
-  "quietStartup": true 
+  "quietStartup": true
 }

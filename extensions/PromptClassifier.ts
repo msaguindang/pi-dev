@@ -11,14 +11,14 @@ export function classifyPrompt(text: string): RoutingDecision {
 
     // CHAIN: Multi-step, complex pipelines
     if (
-        /pipeline|multi-step|chain|sequence|step-by-step/i.test(lowercaseText)
+        /pipeline|multi-step|agent chain|subagent chain|step-by-step/i.test(lowercaseText)
     ) {
         return 'CHAIN';
     }
 
-    // DELEGATE: Research, analysis, parallel tasks, scoping
+    // DELEGATE: Research, analysis, parallel tasks
     if (
-        /analyze|research|parallel|scope|investigate|explore|recon|scout|summarize|audit|survey/i.test(lowercaseText)
+        /\banalyze\b|\bresearch\b|\bparallel\b|\binvestigate\b|\brecon\b|\bscout\b|\bsummarize\b|\baudit\b|\bsurvey\b/i.test(lowercaseText)
     ) {
         return 'DELEGATE';
     }

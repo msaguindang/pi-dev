@@ -1,0 +1,46 @@
+{
+  "skill_name": "repo-onboarder",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "onboard /home/codeweaver/.agents/skills/repo-onboarder/evals/files/fresh-init-repo into my .agents context. it's a new api-v2 repo for the ntv v2 ecosystem.",
+      "expected_output": "Skill prepends .agents imports to the fixture CLAUDE.md, extracts a concise controller summary (path, stack, architecture, deploy), asks user which section of long-term.md to append to, shows proposed cleanup candidates (conventional commits section + code style boilerplate already covered by code-style.md), and waits for confirmation before writing.",
+      "files": ["evals/files/fresh-init-repo/CLAUDE.md"],
+      "assertions": [
+        "The four .agents import lines are prepended at the top of the CLAUDE.md",
+        "The extracted summary includes the repo path",
+        "The extracted summary includes the tech stack (.NET 8, PostgreSQL, Docker, EC2)",
+        "The extracted summary is 10 lines or fewer",
+        "At least one cleanup candidate is shown to the user (e.g. the generic 'use conventional commits' or 'write clean code' lines)",
+        "The skill asks for confirmation before writing any cleanup changes",
+        "The skill does not silently modify long-term.md without showing the summary first"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "add /tmp/nonexistent-repo to my agents context",
+      "expected_output": "Skill detects no CLAUDE.md at the given path and informs the user to run /init in the repo first. No files are modified.",
+      "files": [],
+      "assertions": [
+        "The skill informs the user that no CLAUDE.md was found",
+        "The skill instructs the user to run /init first",
+        "No changes are made to long-term.md",
+        "No files are created or modified"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "hey can you register the player-ui-v2 repo with my agents setup? path is /data/dev/work/ntv/player-ui-v2",
+      "expected_output": "Skill reads existing CLAUDE.md (which already has .agents imports), skips the import step, extracts summary for long-term.md v2 section, scans for cleanup candidates, and shows proposed changes for confirmation.",
+      "files": [],
+      "assertions": [
+        "The skill detects that .agents imports are already present and does not duplicate them",
+        "The extracted summary mentions Electron and Angular 18",
+        "The extracted summary mentions the IPC bridge constraint",
+        "The extracted summary mentions the EC2/Aptly deployment pipeline",
+        "The skill targets the v2 Ecosystem section of long-term.md",
+        "The extracted summary is 10 lines or fewer"
+      ]
+    }
+  ]
+}

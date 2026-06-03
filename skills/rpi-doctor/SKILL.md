@@ -1,0 +1,62 @@
+---
+name: rpi-doctor
+description: An intelligent, context-aware diagnostic tool for Raspberry Pi and local network devices. Automatically translates vague symptoms ("laggy", "player-server broken") into targeted SSH commands (pm2 status, top, etc.). Resolves device aliases to IPs using the local inventory.
+---
+
+# RPI Doctor
+
+An interactive, context-aware skill for managing, diagnosing, and resolving issues on local network devices (primarily Raspberry Pis running NTV services).
+
+## Architecture
+- **Inventory:** Resolves friendly device names (e.g., `test-pi`) to IP addresses using the `~/.config/opencode/device-inventory.json` file.
+- **Context-Aware Triage:** Understands the *intent* of your query and selects the correct diagnostic commands.
+- **On-Demand Execution:** Uses native `ssh` via a bundled bash script with strict timeouts. It does not leave zombie processes running in the background.
+
+---
+
+## When to use this skill
+- When the user asks to "check the remote device" or "check [device-name]".
+- When the user reports a symptom on a local device (e.g., "test-pi is laggy", "player-server is throwing errors on 192.168.0.50").
+- When the user wants to list, add, or remove devices from their known inventory.
+
+---
+
+## Diagnostic Contexts (How the AI should interpret symptoms)
+
+When the user asks you to check a device, analyze their input to determine the *Category* of the problem, then pass that category to the diagnostic script.
+
+1.  **Category: `app` (Specific Service Issues)**
+    *   *Trigger:* User mentions a specific application (e.g., "player-server", "dashboard", "api") or a software crash.
+    *   *Execution:* The script will check `pm2 status` and pull the last 50 lines of logs for the specified app.
+    *   *Agent Action:* Run `scripts/diagnose.sh <device> app <app-name>`
+2.  **Category: `health` (System/Hardware Issues)**
+    *   *Trigger:* User mentions hardware symptoms (e.g., "laggy", "frozen", "slow", "out of space").
+    *   *Execution:* The script will check CPU load (`top`), RAM (`free`), disk space (`df`), and uptime.
+    *   *Agent Action:* Run `scripts/diagnose.sh <device> health`
+3.  **Category: `general` (Vague Checks)**
+    *   *Trigger:* User just says "check test-pi".
+    *   *Execution:* A lightweight combination of uptime and top-level PM2 status.
+    *   *Agent Action:* Run `scripts/diagnose.sh <device> general`
+4.  **Category: `custom` (Explicit Commands)**
+    *   *Trigger:* User explicitly says "run `ls -la` on test-pi".
+    *   *Agent Action:* Run `scripts/diagnose.sh <device> custom "ls -la"`
+
+---
+
+## Connection Handling Workflow
+
+If the execution of `scripts/diagnose.sh` fails with a timeout or connection refused error (e.g., `Connection timed out`), you must pause and ask the user:
+> "I couldn't reach `[device-name]`. Its IP might have changed or it might be offline. Would you like to:"
+> 1. Update its IP address in the inventory.
+> 2. Try scanning the network (if applicable tools are available).
+> 3. Provide a different device to check.
+
+If the user chooses to update the inventory, use your `edit` or `write` tools to update `~/.config/opencode/device-inventory.json`.
+
+---
+
+## Managing the Inventory
+If the user asks to "list devices", read `~/.config/opencode/device-inventory.json` and present the contents cleanly. If they ask to add a device, prompt them for the `name`, `host` (IP), and `user` (defaulting to key-based auth), then update the JSON file.
+
+## Bundled Resources
+- `scripts/diagnose.sh` (The secure SSH executor with timeouts and context-aware command selection)

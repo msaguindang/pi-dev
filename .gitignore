@@ -10,6 +10,7 @@
 .pi/settings.json
 .worktrees/
 .taskplane-tasks/
+taskplane.json
 
 # Pi project-local packages (if using pi install -l)
 .pi/npm/
@@ -36,3 +37,6 @@ cost-history.jsonl
 cost-sync-status.json
 logs/
 usage-data/
+
+# Standalone utility scripts (not part of any extension)
+scripts/
