@@ -107,7 +107,7 @@ export default function (pi: ExtensionAPI) {
 				}
 			}
 			if (ctx.hasUI) {
-				ctx.ui.setStatus("secure-tools", `🔑 ${secrets.size} secrets`);
+				ctx.ui.setStatus("secure-tools", `󰌋 ${secrets.size} secrets`);
 			}
 		} catch {
 			if (ctx.hasUI) {
