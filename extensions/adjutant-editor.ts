@@ -69,37 +69,16 @@ class EmptyFooter implements Component {
 }
 
 // Module-level state shared across sessions
-let _isWorking = false;
 let _activeTui: TUI | undefined;
-let _renderTimer: ReturnType<typeof setInterval> | undefined;
-const SPINNER_FRAMES = ["✱", "✲", "✳", "✲"];
-let _spinnerIndex = 0;
 
 export default function (pi: ExtensionAPI) {
-	pi.on("agent_start", () => {
-		_isWorking = true;
-		if (_renderTimer) clearInterval(_renderTimer);
-		_renderTimer = setInterval(() => {
-			_spinnerIndex = (_spinnerIndex + 1) % SPINNER_FRAMES.length;
-			_activeTui?.requestRender();
-		}, 150);
-		_activeTui?.requestRender();
-	});
-
-	pi.on("agent_end", () => {
-		_isWorking = false;
-		if (_renderTimer) { clearInterval(_renderTimer); _renderTimer = undefined; }
-		_activeTui?.requestRender();
-	});
-
 	pi.on("session_shutdown", () => {
-		if (_renderTimer) { clearInterval(_renderTimer); _renderTimer = undefined; }
 		_activeTui = undefined;
 	});
 
 	pi.on("session_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
-		ctx.ui.setWorkingVisible(false);
+		ctx.ui.setWorkingVisible(true);
 		ctx.ui.setFooter(() => new EmptyFooter());
 
 		let branch: string | undefined;
@@ -149,19 +128,6 @@ export default function (pi: ExtensionAPI) {
 				return editor;
 			});
 		};
-
-		// Spinner widget rendered above the editor border
-		ctx.ui.setWidget(
-			"adjutant-spinner",
-			(_tui, theme) => ({
-				render(_width: number): string[] {
-					if (!_isWorking) return [];
-					return [theme.fg("accent", ` ${SPINNER_FRAMES[_spinnerIndex]!} `)];
-				},
-				invalidate() {},
-			}),
-			{ placement: "aboveEditor" },
-		);
 
 		// Install base CustomEditor; pi-paster (or any other extension) will
 		// override via our interceptor above, keeping the border decoration.
