@@ -44,7 +44,7 @@ This bypasses pi TUI's markdown list collapsing behavior. Does not apply to Clau
 
 ## Agent Notes
 
-`researcher` agent requires `pi-web-access` package for `web_search`. Package is NOT currently installed — only `pi-agent-core`, `pi-ai`, `pi-coding-agent` present under `@earendil-works`. When dispatching research tasks: `web_fetch` with direct URLs and `bash`/`curl` are valid fallbacks. Researcher agent is configured to auto-fall back; no special orchestrator handling needed.
+`researcher` agent uses `pi-web-access` for `web_search` — package is installed under `~/.pi/agent/npm/`. When dispatching research tasks, `web_search` is available via the researcher agent.
 
 ## Domain Context
 
