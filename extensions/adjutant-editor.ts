@@ -141,17 +141,27 @@ export default function (pi: ExtensionAPI) {
 					// Session name on the upper-right, hide for now
 					// const topRight = `\x1b[48;2;122;162;247m\x1b[38;2;26;27;38m ${displayName} \x1b[0m`;
 					const topRight = '';
-					const topLeft = _isWorking
-						? ctx.ui.theme.fg("accent", ` ${SPINNER_FRAMES[_spinnerIndex]!} `)
-						: "";
 					const borderFn = (text: string) => (editor as any).borderColor(text);
-					lines[0] = fitBorder(topLeft, topRight, width, borderFn);
+					lines[0] = fitBorder("", topRight, width, borderFn);
 					lines[lines.length - 1] = fitBorder("", "", width, borderFn);
 					return lines;
 				};
 				return editor;
 			});
 		};
+
+		// Spinner widget rendered above the editor border
+		ctx.ui.setWidget(
+			"adjutant-spinner",
+			(_tui, theme) => ({
+				render(_width: number): string[] {
+					if (!_isWorking) return [];
+					return [theme.fg("accent", ` ${SPINNER_FRAMES[_spinnerIndex]!} `)];
+				},
+				invalidate() {},
+			}),
+			{ placement: "aboveEditor" },
+		);
 
 		// Install base CustomEditor; pi-paster (or any other extension) will
 		// override via our interceptor above, keeping the border decoration.

@@ -80,7 +80,7 @@ export default function (pi: ExtensionAPI) {
 		if (ctx.hasUI && extensionStates.length > 0) {
 			ctx.ui.setStatus(
 				"ext-watcher",
-				`👁 ${extensionStates.length} ext watched`
+				`󰈈 ${extensionStates.length} ext watched`
 			);
 		}
 	});
@@ -94,7 +94,7 @@ export default function (pi: ExtensionAPI) {
 		if (!filePath.includes(path.join(".pi", "agent", "extensions"))) return;
 
 		staleExtensions.add(base);
-		ctx.ui.setStatus("ext-watcher", `⚠ ${staleExtensions.size} stale ext`);
+		ctx.ui.setStatus("ext-watcher", `󰀪 ${staleExtensions.size} stale ext`);
 		ctx.ui.notify(
 			`Extension modified: ${base} — restart pi session to reload changes`,
 			"warning"
