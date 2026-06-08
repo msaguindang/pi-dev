@@ -10,6 +10,11 @@ Classify every prompt before acting. Default to DIRECT — only escalate when th
 - Parallel: `subagent({ tasks: [{ agent, task }, { agent, task }] })`
 - Pattern for recon-then-write: parallel scouts first, collect results, then `subagent({ agent: 'worker', task })`
 
+**Delegation vs. mention syntax:**
+- `@agent-name` in a user message = context reference or question about that agent — do NOT auto-dispatch
+- `subagent({ agent, task })` = explicit dispatch — only use when user intent to delegate is unambiguous
+- When intent is unclear, ask before dispatching
+
 **CHAIN** — multi-agent pipeline, use `subagent()` tool.
 - Multi-step workflows requiring context.md / plan.md handoffs between steps
 - Tasks needing `oracle` drift protection or `contact_supervisor` escalation
@@ -49,6 +54,20 @@ This bypasses pi TUI's markdown list collapsing behavior. Does not apply to Clau
 ## Domain Context
 
 For NTV ecosystem, harness decisions, extension patterns, hyprland, or wezterm specifics — invoke `pi-knowledge-search` before acting. This context is NOT auto-loaded. Assume it is absent until retrieved.
+
+**NTV reviewer agents must load domain context before reviewing.** Player-UI is Angular 18 with a proprietary playback engine. Timing, zone handling, and subscription teardown are high-risk areas. Run `pi-knowledge-search` with query "ntv player-ui" before dispatching any reviewer or QA agent for NTV repos.
+
+## Skill Invocation Rules
+
+Load skills explicitly when the task matches — do not rely solely on auto-trigger:
+
+- **NTV domain / harness / hyprland / wezterm questions**: invoke `pi-knowledge-search` first — context is NOT auto-loaded
+- **Starting work on an NTV ticket, feature, or bug**: load `ntv-worktree-manager`
+- **Plane task queries, ticket status, sprint/backlog**: load `plane-tasks`
+- **Session start / morning briefing**: load `session-clock-in`
+- **Session end / wrapping up / day log**: load `session-clock-out` (chains to `work-log-writer`)
+- **Multi-step delegation pipeline (design → implement → review)**: load `delegate` skill
+- **CHAIN tier dispatch**: load `pi-subagents` skill first
 
 ## Boundary Awareness: pi-harness vs Repositories
 
