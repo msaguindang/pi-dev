@@ -1,8 +1,8 @@
 {
-  "lastChangelogVersion": "0.78.0",
+  "lastChangelogVersion": "0.78.1",
   "defaultProvider": "google",
   "defaultModel": "gemini-3.1-flash-lite",
-  "defaultThinkingLevel": "low",
+  "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-paster",
@@ -38,8 +38,7 @@
     "+extensions/PromptRouter.ts",
     "+extensions/adjutant-greeting.ts",
     "+extensions/cost-tracker.ts",
-    "+extensions/shadow-evaluator.ts",
-    "+extensions/first-run.ts",
+"+extensions/first-run.ts",
     "+extensions/session-name-status.ts",
     "+extensions/context-resolver.ts",
     "+extensions/secure-tools.ts",
