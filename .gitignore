@@ -22,6 +22,10 @@ auth.json
 .pi/runtime/
 .pi/supervisor/
 .pi/telemetry/
+.pi/taskplane-config.json
+.pi/taskplane.json
+.pi/dashboard-preferences.json
+.pi/verification/
 sessions/
 plan_output.txt
 run-history.jsonl
