@@ -19,7 +19,7 @@ Captures current project state so the user can wipe the chat context (`/clear`) 
 
 ### 1. Extract Current State
 Analyze the current conversation and active directory to determine:
-- **Project Slug**: Derive from the active directory (e.g., `/data/dev/work/ntv/player-ui` → `ntv-player-ui`).
+- **Project Slug**: Derive from the active directory (e.g., `/home/user/projects/my-app` → `my-app`).
 - **Active Directory**: The current working path.
 - **Goal**: What are we trying to accomplish?
 - **In Progress**: What exactly is half-finished right now? (e.g., "Edited auth.ts, tests failing on line 42").

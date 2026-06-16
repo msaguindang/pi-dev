@@ -59,7 +59,7 @@ deploy_to_pi.sh release/v2.9.45 dev ui --yes
 
 1. **Plan**: run the script WITHOUT `--yes`. It resolves directories, asserts the branch
    and a clean tree, and resolves the target host from each repo's `sshConfig.js` for
-   the chosen env (e.g. `next` → `dev` → 192.168.1.118 for player-server). It fails hard
+   the chosen env (e.g. `next` → `dev` → `<device-ip>` for player-server). It fails hard
    if anything is off — there are no hardcoded host fallbacks.
 2. **Confirm**: show the printed plan (dirs, branch @ commit, version, **resolved host
    per repo**) to the user and get explicit confirmation. NEVER pass `--yes` without it.

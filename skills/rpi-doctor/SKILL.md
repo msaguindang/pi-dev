@@ -16,7 +16,7 @@ An interactive, context-aware skill for managing, diagnosing, and resolving issu
 
 ## When to use this skill
 - When the user asks to "check the remote device" or "check [device-name]".
-- When the user reports a symptom on a local device (e.g., "test-pi is laggy", "player-server is throwing errors on 192.168.0.50").
+- When the user reports a symptom on a local device (e.g., "test-pi is laggy", "player-server is throwing errors on <device-ip>").
 - When the user wants to list, add, or remove devices from their known inventory.
 
 ---

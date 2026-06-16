@@ -699,7 +699,7 @@ function loadDomainAgents(): AgentEntry[] {
       .map(f => {
         const content = readFileSync(join(agentsDir, f), "utf-8");
         const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? basename(f, ".md");
-        const subtitle = content.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? "";
+        const subtitle = (content.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? "").replace(/^["']|["']$/g, "");
         return { name, subtitle };
       });
   } catch {

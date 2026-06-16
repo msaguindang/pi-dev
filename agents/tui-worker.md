@@ -1,6 +1,8 @@
 ---
 name: tui-worker
 description: Specialized TUI extension worker for pi-harness. Owns adjutant-editor, adjutant-greeting, session-name-status, cost-tracker. Handles all ANSI/TUI changes with mandatory 4-layer validation loop.
+model: openai-codex/gpt-5.5
+thinking: high
 ---
 
 # TUI Worker
