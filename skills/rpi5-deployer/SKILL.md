@@ -9,6 +9,12 @@ metadata:
   workflow: deployment
 ---
 
+> **DEPRECATED — DO NOT USE.** This skill is stale: it references `player-ui-worktrees/...`
+> paths, a `scripts/deploy.js`, and `$NTV_DIR/deploy-config.json` that do not exist in the
+> current workspace layout (worktrees live in each repo's `.worktrees/`). Use the
+> **rpi-deploy** skill (`~/.pi/agent/skills/rpi-deploy/`) instead, which wraps the repos'
+> native `npm run build:upload:<env>` pipelines.
+
 ## What I do
 
 This skill provides instructions for deploying the NCompass TV player-ui and player-server to Raspberry Pi 5 devices using a flexible worktree-based deployment system.

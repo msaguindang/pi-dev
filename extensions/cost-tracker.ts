@@ -8,11 +8,11 @@
  * Works in every pi process automatically (orchestrator + all subagents).
  */
 
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { visibleWidth, truncateToWidth } from "@earendil-works/pi-tui";
 
 const COST_HISTORY = join(homedir(), ".pi", "agent", "cost-history.jsonl");
 
@@ -87,6 +87,20 @@ export default function (pi: ExtensionAPI): void {
 						}
 					}
 
+                    // Add subagent costs from history
+                    try {
+                        if (existsSync(COST_HISTORY)) {
+                            const content = readFileSync(COST_HISTORY, "utf-8");
+                            const records = content.split("\n").filter(Boolean).map(line => JSON.parse(line));
+                            const subagentCost = records
+                                .filter(r => r.sessionId === ctx.sessionManager.getSessionId() && r.isSubagent)
+                                .reduce((sum, r) => sum + (r.usage?.cost || 0), 0);
+                            sessionCost += subagentCost;
+                        }
+                    } catch (e) {
+                        // Ignore errors reading history
+                    }
+
 					// If `acc` is active, we are currently generating, so the "Previous" prompt is the turn before this one.
 					// If idle, it's the current turn.
 					const prevCost = acc !== null ? (turnCosts[currentTurnIndex - 1] ?? 0) : (turnCosts[currentTurnIndex] ?? 0);
@@ -100,7 +114,7 @@ export default function (pi: ExtensionAPI): void {
 					
 					const pad = " ".repeat(Math.max(1, width - visibleWidth(left) - visibleWidth(right)));
 					
-					return [left + pad + right];
+					return [truncateToWidth(left + pad + right, width)];
 				},
 			};
 		});

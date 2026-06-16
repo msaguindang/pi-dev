@@ -146,8 +146,11 @@ export default function (pi: ExtensionAPI) {
       }
     }
     if (/ssh|scp|sshpass/.test(cmd)) {
-      const ok = await ctx.ui.confirm("GUARDRAIL", `SSH/SCP operation detected. Allow?`);
-      if (!ok) return { block: true, reason: "Blocked" };
+      const isDestructive = /rm|sed|cp|mv|truncate|apt|reboot|shutdown|systemctl|pm2/.test(cmd);
+      if (isDestructive) {
+        const ok = await ctx.ui.confirm("GUARDRAIL", `Destructive SSH/SCP operation detected. Allow?`);
+        if (!ok) return { block: true, reason: "Blocked" };
+      }
     }
     if (/npm\s+publish/.test(cmd)) {
       return { block: true, reason: "Blocked" };
