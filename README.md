@@ -50,7 +50,15 @@ cp ~/.pi/agent/standards-templates/tool-policy.md ~/.agents/standards/tool-polic
 
 See `context-templates/` in this repo for starter files.
 
-### 3. Set up providers
+### 3. Copy settings
+
+```bash
+cp ~/.pi/agent/settings.json.example ~/.pi/agent/settings.json
+```
+
+`settings.json` is gitignored — pi writes runtime state back to it on every session (last model used, changelog version, etc). The example file has the correct defaults (`minimax/MiniMax-M3`, all extensions, Tokyo Night theme). Copy it once; pi owns it from there.
+
+### 4. Set up providers
 
 ```bash
 pi auth login
@@ -67,7 +75,7 @@ To verify available models after login:
 pi --list-models
 ```
 
-### 4. Verify
+### 5. Verify
 
 ```bash
 pi --version
@@ -82,7 +90,7 @@ pi "hello"
 ~/.pi/agent/                        ← this repo (shareable)
 ├── AGENTS.md                       # context chain — loads ~/.agents/ files
 ├── APPEND_SYSTEM.md                # routing rules, pre-fix gate, TUI rendering
-├── settings.json                   # model config, extensions, packages, theme
+├── settings.json.example           # template — copy to settings.json on first setup (gitignored at runtime)
 ├── agents/                         # specialized sub-agents
 │   ├── linux-doctor.md
 │   ├── session-auditor.md
@@ -315,6 +323,7 @@ Already in `.gitignore`, but worth knowing:
 
 | Path | Reason |
 |---|---|
+| `settings.json` | Pi rewrites this every session (last model, changelog version) — use `settings.json.example` to ship defaults |
 | `auth.json` | API credentials |
 | `sessions/` | Session transcripts |
 | `cost-history.jsonl` | Machine-specific cost data |
