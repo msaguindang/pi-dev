@@ -1,7 +1,7 @@
 {
-  "lastChangelogVersion": "0.78.1",
-  "defaultProvider": "google",
-  "defaultModel": "gemini-3.1-flash-lite",
+  "lastChangelogVersion": "0.79.4",
+  "defaultProvider": "minimax",
+  "defaultModel": "MiniMax-M3",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "packages": [
@@ -38,10 +38,9 @@
     "+extensions/PromptRouter.ts",
     "+extensions/adjutant-greeting.ts",
     "+extensions/cost-tracker.ts",
-"+extensions/first-run.ts",
+    "+extensions/first-run.ts",
     "+extensions/session-name-status.ts",
     "+extensions/context-resolver.ts",
-    "+extensions/secure-tools.ts",
     "+extensions/tui-dryrun.ts",
     "+extensions/extension-watcher.ts",
     "-extensions/memory-inject.ts"
