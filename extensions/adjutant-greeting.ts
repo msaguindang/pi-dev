@@ -691,7 +691,23 @@ const TIER2_AGENTS: AgentEntry[] = [
   { name: "delegate", subtitle: "lightweight" },
 ];
 
-const TIER3_AGENTS: AgentEntry[] = [];
+function loadDomainAgents(): AgentEntry[] {
+  try {
+    const agentsDir = join(osHomedir(), ".pi", "agent", "agents");
+    return readdirSync(agentsDir)
+      .filter(f => f.endsWith(".md"))
+      .map(f => {
+        const content = readFileSync(join(agentsDir, f), "utf-8");
+        const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? basename(f, ".md");
+        const subtitle = content.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? "";
+        return { name, subtitle };
+      });
+  } catch {
+    return [];
+  }
+}
+
+const TIER3_AGENTS: AgentEntry[] = loadDomainAgents();
 
 // ── Agent Color Palette ──────────────────────────────────────────────────
 

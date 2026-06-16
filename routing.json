@@ -1,0 +1,4 @@
+{
+  "orchestrator": { "provider": "minimax", "model": "MiniMax-M3" },
+  "worker": { "provider": "openai-codex", "model": "gpt-5.5" }
+}

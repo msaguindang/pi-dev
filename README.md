@@ -122,22 +122,22 @@ pi "hello"
 
 ## Model Routing
 
-Configured in `settings.json` + `extensions/PromptRouter.ts`.
+Configured in two places:
 
-| Role | Model | Provider |
-|---|---|---|
-| Orchestrator (default) | MiniMax-M3 | `minimax` |
-| Workers / Reviewers | gpt-5.5 | `openai-codex` |
+| Config | Controls |
+|---|---|
+| `settings.json` → `defaultProvider` + `defaultModel` | Orchestrator (main session model) |
+| `routing.json` → `worker.model` | All sub-agents dispatched via DELEGATE / CHAIN |
 
-`PromptClassifier.ts` classifies every prompt as `DIRECT`, `DELEGATE`, or `CHAIN`. `PromptRouter.ts` injects the appropriate sub-agent model hint:
+`PromptClassifier.ts` classifies every prompt as `DIRECT`, `DELEGATE`, or `CHAIN`. `PromptRouter.ts` reads `routing.json` at startup and injects the worker model into sub-agent dispatch hints:
 
-- **DIRECT** — M3 responds inline, no delegation
-- **DELEGATE** — notify: use `subagent({ agent, task, model: "gpt-5.5" })`
-- **CHAIN** — notify: use `subagent({ chain: [...], model: "gpt-5.5" })`
+- **DIRECT** — orchestrator responds inline, no delegation
+- **DELEGATE** — notify: use `subagent({ agent, task, model: "<worker.model>" })`
+- **CHAIN** — notify: use `subagent({ chain: [...], model: "<worker.model>" })`
 
-M3 always stays as the main session model. GPT-5.5 is used only in sub-agent dispatch.
+### Changing the model stack
 
-To use a different model stack, update `settings.json`:
+**1. Orchestrator** — edit `settings.json`:
 
 ```json
 {
@@ -146,7 +146,18 @@ To use a different model stack, update `settings.json`:
 }
 ```
 
-And update the `modelRegistry.find()` calls in `extensions/PromptRouter.ts`.
+**2. Workers / Reviewers** — edit `routing.json`:
+
+```json
+{
+  "orchestrator": { "provider": "minimax", "model": "MiniMax-M3" },
+  "worker": { "provider": "openai-codex", "model": "gpt-5.5" }
+}
+```
+
+`routing.json` is read once at extension startup. Change the `worker.model` value to any model ID returned by `pi --list-models`. If the file is missing, `PromptRouter.ts` falls back to `gpt-5.5`.
+
+The `orchestrator` block in `routing.json` is documented for reference — it is not read by any extension (pi reads `settings.json` directly for the session model). Keep both in sync.
 
 ---
 
