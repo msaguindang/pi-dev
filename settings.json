@@ -42,7 +42,7 @@
     "+extensions/session-name-status.ts",
     "+extensions/context-resolver.ts",
     "+extensions/tui-dryrun.ts",
-    "+extensions/extension-watcher.ts",
+    "+extensions/extension-watcher.ts"
   ],
   "themes": [
     "-themes/catppuccin-mocha.json",
