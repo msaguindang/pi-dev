@@ -43,7 +43,6 @@
     "+extensions/context-resolver.ts",
     "+extensions/tui-dryrun.ts",
     "+extensions/extension-watcher.ts",
-    "-extensions/memory-inject.ts"
   ],
   "themes": [
     "-themes/catppuccin-mocha.json",

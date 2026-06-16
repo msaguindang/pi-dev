@@ -44,3 +44,6 @@ usage-data/
 
 # Standalone utility scripts (not part of any extension)
 scripts/
+
+# Claude Code local permission overrides (machine-specific)
+.claude/settings.local.json
