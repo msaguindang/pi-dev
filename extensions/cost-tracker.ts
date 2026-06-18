@@ -8,7 +8,7 @@
  * Works in every pi process automatically (orchestrator + all subagents).
  */
 
-import { appendFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -23,6 +23,7 @@ const FALLBACK_RATES: Record<string, { input: number; output: number; cacheRead:
 	"claude-haiku-4-5":       { input: 1e-6,    output: 5e-6,   cacheRead: 1e-7,   cacheWrite: 1.25e-6 },
 	"gemini-3.1-pro-preview": { input: 2e-6,    output: 12e-6,  cacheRead: 2e-7,   cacheWrite: 0       },
 	"minimax-m2":             { input: 3e-7,    output: 1.2e-6, cacheRead: 3e-8,   cacheWrite: 0       },
+	"minimax-m3":             { input: 6e-7,    output: 2.4e-6, cacheRead: 1.2e-7, cacheWrite: 0       },
 };
 
 function fallbackCost(
@@ -87,19 +88,18 @@ export default function (pi: ExtensionAPI): void {
 						}
 					}
 
-                    // Add subagent costs from history
-                    try {
-                        if (existsSync(COST_HISTORY)) {
-                            const content = readFileSync(COST_HISTORY, "utf-8");
-                            const records = content.split("\n").filter(Boolean).map(line => JSON.parse(line));
-                            const subagentCost = records
-                                .filter(r => r.sessionId === ctx.sessionManager.getSessionId() && r.isSubagent)
-                                .reduce((sum, r) => sum + (r.usage?.cost || 0), 0);
-                            sessionCost += subagentCost;
-                        }
-                    } catch (e) {
-                        // Ignore errors reading history
-                    }
+					// Include sub-agent costs in the total session cost
+					try {
+						if (existsSync(COST_HISTORY)) {
+							const content = readFileSync(COST_HISTORY, "utf-8");
+							const records = content.split("\n").filter(Boolean).map(line => JSON.parse(line));
+							const subagentCost = records
+								.filter(r => r.sessionId === ctx.sessionManager.getSessionId() && r.isSubagent)
+								.reduce((sum, r) => sum + (r.usage?.cost || 0), 0);
+							sessionCost += subagentCost;
+						}
+					} catch (e) {}
+
 
 					// If `acc` is active, we are currently generating, so the "Previous" prompt is the turn before this one.
 					// If idle, it's the current turn.
