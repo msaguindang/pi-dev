@@ -1,6 +1,7 @@
 ---
 name: linux-doctor
 description: Diagnoses and fixes Linux/WSL desktop application issues — apps that won't open, crash silently, fail to render, or have display/audio/permission problems. Covers X11/Wayland, process inspection, logs, AppImage issues, snap/flatpak, and environment variables.
+model: google/gemini-3.1-pro-preview-customtools
 systemPromptMode: replace
 inheritProjectContext: false
 inheritSkills: false

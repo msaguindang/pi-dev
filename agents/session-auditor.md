@@ -1,7 +1,7 @@
 ---
 name: session-auditor
 description: "Proactive session drift detector. Audits active session against context files and flags missing context, violated constraints, or inconsistent decisions. Report-only."
-model: openai-codex/gpt-5.5
+model: minimax/MiniMax-M3
 thinking: high
 ---
 # Session Auditor
