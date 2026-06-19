@@ -145,8 +145,14 @@ export default function (pi: ExtensionAPI) {
         if (!ok) return { block: true, reason: "Blocked" };
       }
     }
-    if (/ssh|scp|sshpass/.test(cmd)) {
-      const isDestructive = /rm|sed|cp|mv|truncate|apt|reboot|shutdown|systemctl|pm2/.test(cmd);
+    if (/\b(ssh|scp|sshpass)\b/.test(cmd)) {
+      // Word-boundaried file ops (avoid matching cpu/thermal/firmware/used/adapter in diagnostic text)
+      const destructiveFileOps = /\brm\b|\bsed\b\s+-i|\bcp\b|\bmv\b|\btruncate\b|\breboot\b|\bshutdown\b|\bpoweroff\b/.test(cmd);
+      // Service/package/process managers: flag MUTATING subcommands only — read-only status/logs/list/show stay free
+      const serviceMutation = /\b(systemctl|service)\s+(start|stop|restart|reload|enable|disable|mask)\b/.test(cmd);
+      const pm2Mutation = /\bpm2\s+(restart|stop|delete|reload|kill|start|scale|flush)\b/.test(cmd);
+      const aptMutation = /\bapt(-get)?\s+(install|remove|purge|upgrade|dist-upgrade|autoremove)\b/.test(cmd);
+      const isDestructive = destructiveFileOps || serviceMutation || pm2Mutation || aptMutation;
       if (isDestructive) {
         const ok = await ctx.ui.confirm("GUARDRAIL", `Destructive SSH/SCP operation detected. Allow?`);
         if (!ok) return { block: true, reason: "Blocked" };
