@@ -26,6 +26,18 @@ const FALLBACK_RATES: Record<string, { input: number; output: number; cacheRead:
 	"minimax-m3":             { input: 6e-7,    output: 2.4e-6, cacheRead: 1.2e-7, cacheWrite: 0       },
 };
 
+// Derive the parent (root) session id from a subagent's session file path.
+// Subagent session files live under a directory segment of the form
+// `<TIMESTAMP>Z_<PARENT_UUID>`; scan for the FIRST such segment to stay
+// robust against nested-subagent depth.
+function deriveParentSessionId(sessionFile: string | null | undefined): string | undefined {
+	if (!sessionFile) return undefined;
+	const parts = sessionFile.split(/[/\\]/);
+	const seg = parts.find(p => /Z_[0-9a-f-]{36}$/.test(p));
+	if (!seg) return undefined;
+	return seg.replace(/^.*Z_/, "");
+}
+
 function fallbackCost(
 	modelId: string,
 	usage: { input: number; output: number; cacheRead: number; cacheWrite: number },
@@ -94,7 +106,7 @@ export default function (pi: ExtensionAPI): void {
 							const content = readFileSync(COST_HISTORY, "utf-8");
 							const records = content.split("\n").filter(Boolean).map(line => JSON.parse(line));
 							const subagentCost = records
-								.filter(r => r.sessionId === ctx.sessionManager.getSessionId() && r.isSubagent)
+								.filter(r => r.isSubagent && r.parentSessionId === ctx.sessionManager.getSessionId())
 								.reduce((sum, r) => sum + (r.usage?.cost || 0), 0);
 							sessionCost += subagentCost;
 						}
@@ -158,6 +170,7 @@ export default function (pi: ExtensionAPI): void {
 			isSubagent,
 			...(runId ? { runId } : {}),
 			sessionId: ctx.sessionManager.getSessionId() ?? "unknown",
+			...(isSubagent ? { parentSessionId: deriveParentSessionId(ctx.sessionManager.getSessionFile?.()) } : {}),
 			model:     modelFull,
 			provider,
 			cwd:       ctx.cwd,
