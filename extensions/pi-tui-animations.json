@@ -1,7 +1,7 @@
 {
-  "workingAnim": "crush",
-  "thinkingAnim": "crush",
-  "toolAnim": "crush",
+  "workingAnim": "typewriter",
+  "thinkingAnim": "typewriter",
+  "toolAnim": "typewriter",
   "width": "full",
   "randomMode": false,
   "enabled": true
