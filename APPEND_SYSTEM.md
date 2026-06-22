@@ -38,6 +38,16 @@ For toolchain / infra problems: **probe the environment first** — inventory wh
 
 Skip this gate only for DIRECT responses (no code, no delegation).
 
+## Post-Mutation Review Gate
+
+After any `worker` dispatch that MUTATES state (file edits, deploys, destructive / device ops, config or schema changes), you MUST dispatch `reviewer` BEFORE reporting the task done — without being asked.
+
+- **Scope:** the gate FIRES for mutating / irreversible / destructive work. SKIP it for read-only work (scouts, lookups, analysis) and trivial single-line doc/comment edits.
+- **Contract required:** pass the `reviewer` the acceptance criteria — a manifest file path (e.g. `PRODUCTION_READY_MANIFEST.md`, `standards/code-style.md`) AND the diff/artifact to check. If no standing manifest exists, enumerate the acceptance criteria inline. Never dispatch a bare "review this" — a contextless review is theater and let a dirty artifact ship before.
+- **Decision owner:** you (the orchestrator) decide scope at dispatch time — you know whether you are dispatching a mutation. The worker's `Mutated/Risk` line is confirmation, not the trigger.
+- **On FAIL/BLOCKER:** route the specific items back to `worker`, then re-review. Never report a mutating task done until `reviewer` returns `Verdict: PASS`.
+- **Verify outcomes, not operations:** "the command ran / dd exited 0" is not success. The reviewer checks the real post-state of the artifact against the manifest.
+
 ## TUI Rendering (pi sessions only)
 
 Override standard markdown for pi terminal output:

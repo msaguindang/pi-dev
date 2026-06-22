@@ -57,6 +57,9 @@ Changed files: Y.
 Validation: Z.
 Open risks/questions: R.
 Recommended next step: N.
+Mutated: yes/no · Risk: trivial | standard | irreversible
+
+(The `Mutated/Risk` line lets the orchestrator confirm whether the Post-Mutation Review Gate applies. `Mutated: yes` with `Risk: standard|irreversible` => the orchestrator must route this to `reviewer` against the acceptance criteria before reporting done.)
 
 ## Local override notes
 - `defaultContext: fresh` (was `fork` in upstream). This agent is invoked for one-shot implementation tasks with self-contained inputs (context.md, plan.md via `defaultReads`, explicit `task` string, file ownership from the orchestrator). Fork mode's reference-only preamble and filtered parent history caused gpt-5.5 to over-anchor and exit early with one-line meta-commentary instead of executing. The upstream README (line 182) explicitly documents fresh as the correct mode for one-shot runs.

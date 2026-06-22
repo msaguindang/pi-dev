@@ -49,8 +49,8 @@ subagent({
 
 ```js
 subagent({
-  agent: "worker",
-  task: "You are a pre-flight Reviewer. Review the plan below for spec violations, missing edge cases, or incorrect assumptions. Output APPROVED or a numbered list of BLOCKERS.\n\nPlan:\n<paste Phase 1 output verbatim here>"
+  agent: "reviewer",
+  task: "Pre-flight: check the plan below against the task's acceptance criteria / relevant manifest for spec violations, missing edge cases, or incorrect assumptions. Output your Verdict (PASS/FAIL) with per-criterion findings.\n\nAcceptance criteria / manifest:\n<paste manifest path or criteria>\n\nPlan:\n<paste Phase 1 output verbatim here>"
 })
 ```
 
@@ -68,14 +68,14 @@ subagent({
 ```js
 // Stage A — spec compliance
 subagent({
-  agent: "worker",
-  task: "You are QA Stage A. Compare the implementation diff against the original plan. Does every planned step appear in the diff? Output PASS or a numbered list of MISMATCHES.\n\nPlan:\n<paste plan>\n\nDiff:\n<paste git diff output>"
+  agent: "reviewer",
+  task: "QA Stage A — spec compliance. Compare the implementation diff against the original plan. Does every planned step appear in the diff? Output your Verdict (PASS/FAIL) with per-criterion findings.\n\nPlan:\n<paste plan>\n\nDiff:\n<paste git diff output>"
 })
 
 // Stage B — code quality (only after Stage A passes)
 subagent({
-  agent: "worker",
-  task: "You are QA Stage B. Review the diff for correctness, error handling, and adherence to code style standards. Output PASS or a numbered list of FAILURES.\n\nDiff:\n<paste git diff output>"
+  agent: "reviewer",
+  task: "QA Stage B — code quality. Review the diff for correctness, error handling, and adherence to standards/code-style.md (the acceptance contract). Output your Verdict (PASS/FAIL) with per-criterion findings.\n\nDiff:\n<paste git diff output>"
 })
 ```
 
