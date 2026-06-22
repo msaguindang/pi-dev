@@ -1,7 +1,7 @@
 {
   "workingAnim": "typewriter",
   "thinkingAnim": "typewriter",
-  "toolAnim": "typewriter",
+  "toolAnim": "glitch-text",
   "width": "full",
   "randomMode": false,
   "enabled": true
