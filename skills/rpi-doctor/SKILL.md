@@ -8,7 +8,7 @@ description: An intelligent, context-aware diagnostic tool for Raspberry Pi and 
 An interactive, context-aware skill for managing, diagnosing, and resolving issues on local network devices (primarily Raspberry Pis running NTV services).
 
 ## Architecture
-- **Inventory:** Resolves friendly device names (e.g., `test-pi`) to IP addresses using the `~/.config/opencode/device-inventory.json` file.
+- **Inventory:** Resolves friendly device names (e.g., `test-pi`) to IP addresses using the bundled `device-inventory.json` file in the skill directory.
 - **Context-Aware Triage:** Understands the *intent* of your query and selects the correct diagnostic commands.
 - **On-Demand Execution:** Uses native `ssh` via a bundled bash script with strict timeouts. It does not leave zombie processes running in the background.
 
@@ -51,12 +51,12 @@ If the execution of `scripts/diagnose.sh` fails with a timeout or connection ref
 > 2. Try scanning the network (if applicable tools are available).
 > 3. Provide a different device to check.
 
-If the user chooses to update the inventory, use your `edit` or `write` tools to update `~/.config/opencode/device-inventory.json`.
+If the user chooses to update the inventory, use your `edit` or `write` tools to update the skill's bundled `skills/rpi-doctor/device-inventory.json`.
 
 ---
 
 ## Managing the Inventory
-If the user asks to "list devices", read `~/.config/opencode/device-inventory.json` and present the contents cleanly. If they ask to add a device, prompt them for the `name`, `host` (IP), and `user` (defaulting to key-based auth), then update the JSON file.
+If the user asks to "list devices", read the skill's bundled `skills/rpi-doctor/device-inventory.json` and present the contents cleanly. If they ask to add a device, prompt them for the `name`, `host` (IP), and `user` (defaulting to key-based auth), then update the JSON file.
 
 ## Bundled Resources
 - `scripts/diagnose.sh` (The secure SSH executor with timeouts and context-aware command selection)
