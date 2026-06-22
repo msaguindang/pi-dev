@@ -5,7 +5,7 @@ description: Reads daily Obsidian work logs for a week, extracts technical notes
 
 # Skill: weekly-report-generator
 
-An Opencode skill that reads daily work logs for a specific week, extracts technical notes and team updates, and uses the LLM to synthesize a management-friendly Weekly Report.
+A pi skill that reads daily work logs for a specific week, extracts technical notes and team updates, and uses the LLM to synthesize a management-friendly Weekly Report.
 
 ## When to use this skill
 - When the user asks to "write the weekly report", "generate the report", or "summarize this week's logs".

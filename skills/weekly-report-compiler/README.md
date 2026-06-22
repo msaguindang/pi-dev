@@ -77,7 +77,7 @@ Edit `scripts/config.json`:
 
 ## Usage
 
-Invoke via your AI agent (OpenCode, Claude Code, etc.):
+Invoke via your AI agent (Claude Code, pi, etc.):
 
 > "Compile the weekly report" / "Generate this week's EOW report"
 
