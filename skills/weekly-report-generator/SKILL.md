@@ -21,7 +21,7 @@ A pi skill that reads daily work logs for a specific week, extracts technical no
 ### Step 2: Extract Raw Data
 Run the bundled extraction script to pull the "Dev Log" and "Team Updates" from the Obsidian vault:
 ```bash
-python ~/.config/opencode/skills/weekly-report-generator/scripts/extract_logs.py <YYYY-Www> "~/Dropbox/Obsidian"
+python3 ~/.pi/agent/skills/weekly-report-generator/scripts/extract_logs.py <YYYY-Www> "$HOME/Dropbox/Obsidian"
 ```
 
 ### Step 3: Synthesize and Translate (LLM Magic)
@@ -33,7 +33,7 @@ Read the output of the script. Do NOT just copy-paste the raw bullets. You must 
 3. **Draft the Executive Summary:** Write a 2-3 sentence high-level summary of the week's biggest wins based on the logs.
 
 ### Step 4: Generate the Report
-Create a new file in the vault at `2. Areas/01 Work/Weekly Reports/YYYY-MM-DD - Weekly Report.md`.
+Create a new file in the vault at `2. Areas/01 Work/01 Operations/Weekly Reports/YYYY-MM-DD - Weekly Report.md`.
 
 Use this exact structure:
 
