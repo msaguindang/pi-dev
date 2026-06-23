@@ -42,3 +42,9 @@ assertion + how to check it. Run `./harness-audit.sh` to verify all programmatic
 
 - **INV-10** Review-as-default-gate: mutating / irreversible / destructive work (edits, deploys, device imaging) is reviewed against an acceptance spec **before** the irreversible step — not on user request. Review without a spec is theater; review checks a manifest (see `PRODUCTION_READY_MANIFEST.md` for the device case).
 - **INV-11** Verify outcomes, not operations: tool exit 0 ≠ task success. Inspect the produced artifact against its acceptance criteria; report verified-vs-assumed, never present mechanical success as semantic success.
+
+## Extension load order
+
+- **INV-12** `adjutant-editor.ts` must load before `adjutant-greeting.ts`. Greeting reads editor state established by the editor extension; if editor loads after, the greeting renders against an uninitialized context. Check: `adjutant-editor` appears before `adjutant-greeting` in the `extensions` array in `settings.json`.
+- **INV-13** `guardrails.ts` must load before `PromptRouter.ts`. The `tool_call` hook registered by guardrails must be in place before PromptRouter begins routing — otherwise destructive ops dispatched via DELEGATE/CHAIN bypass the safety intercept. Check: `guardrails` appears before `PromptRouter` in the `extensions` array in `settings.json`.
+- **INV-14** `harness-audit-gate.ts` must load after `guardrails.ts`. The audit gate reads state that guardrails sets; loading before guardrails causes the gate to evaluate against uninitialized state and may pass checks that should block. Check: `harness-audit-gate` appears after `guardrails` in the `extensions` array in `settings.json`.

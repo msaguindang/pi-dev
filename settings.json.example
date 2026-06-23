@@ -1,7 +1,7 @@
 {
-  "defaultProvider": "minimax",
-  "defaultModel": "MiniMax-M3",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-haiku-4-5",
+  "defaultThinkingLevel": "low",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-paster",

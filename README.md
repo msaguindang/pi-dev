@@ -2,7 +2,7 @@
 
 Portable configuration layer for [`pi`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) — the multi-agent coding CLI. This repo (`~/.pi/agent`) is the shareable half. Personal context lives in a separate vault (`~/.agents`).
 
-**Model stack:** MiniMax M3 (orchestrator) + GPT-5.5 via ChatGPT subscription (all workers/reviewers).
+**Model stack:** Claude Haiku 4.5 (orchestrator, low-thinking) + Claude Sonnet 4.6 (workers/reviewers). Requires Anthropic API key.
 
 ---
 
@@ -11,8 +11,7 @@ Portable configuration layer for [`pi`](https://www.npmjs.com/package/@earendil-
 - Node.js 18+
 - `npm install -g @earendil-works/pi-coding-agent`
 - Git
-- MiniMax API key
-- ChatGPT subscription (for GPT-5.5 worker access)
+- Anthropic API key
 
 ---
 
@@ -56,7 +55,7 @@ See `context-templates/` in this repo for starter files.
 cp ~/.pi/agent/settings.json.example ~/.pi/agent/settings.json
 ```
 
-`settings.json` is gitignored — pi writes runtime state back to it on every session (last model used, changelog version, etc). The example file has the correct defaults (`minimax/MiniMax-M3`, all extensions, Tokyo Night theme). Copy it once; pi owns it from there.
+`settings.json` is gitignored — pi writes runtime state back to it on every session (last model used, changelog version, etc). The example file has the correct defaults (`anthropic/claude-haiku-4-5`, low thinking, all extensions, Tokyo Night theme). Copy it once; pi owns it from there.
 
 ### 4. Set up providers
 
@@ -66,8 +65,7 @@ pi auth login
 
 Log in to the providers you plan to use. At minimum:
 
-- **MiniMax** — default orchestrator (`minimax/MiniMax-M3`)
-- **ChatGPT** — worker/reviewer access (`openai-codex/gpt-5.5`)
+- **Anthropic** — orchestrator + workers (`anthropic/claude-haiku-4-5`, `anthropic/claude-sonnet-4-6`)
 
 To verify available models after login:
 
@@ -149,8 +147,8 @@ Configured in two places:
 
 ```json
 {
-  "defaultProvider": "minimax",
-  "defaultModel": "MiniMax-M3"
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-haiku-4-5"
 }
 ```
 
@@ -158,8 +156,8 @@ Configured in two places:
 
 ```json
 {
-  "orchestrator": { "provider": "minimax", "model": "MiniMax-M3" },
-  "worker": { "provider": "openai-codex", "model": "gpt-5.5" }
+  "orchestrator": { "provider": "anthropic", "model": "claude-haiku-4-5" },
+  "worker": { "provider": "anthropic", "model": "claude-sonnet-4-6" }
 }
 ```
 
@@ -189,6 +187,7 @@ Loaded automatically at startup via `settings.json` `extensions` array.
 | `session-name-status.ts` | Shows active session name in TUI status bar |
 | `tool-cache.ts` | Caches repeated tool results within a session |
 | `tui-dryrun.ts` | ANSI validation guard — blocks TUI edits without dry-run verification |
+| `atuin.ts` | *(disabled by default)* Tracks pi bash commands in [Atuin](https://github.com/atuinsh/atuin) history with author `pi`. Requires `atuin` installed and `atuin hook install pi` run. Enable by changing `-extensions/atuin.ts` to `+extensions/atuin.ts` in `settings.json`. |
 
 To disable an extension, prefix its entry with `-` in `settings.json`:
 
@@ -242,9 +241,9 @@ Located in `agents/`. Invoked via `subagent({ agent: "<name>", task })`.
 
 | Agent | Purpose | Model |
 |---|---|---|
-| `linux-doctor` | System-level diagnostics (OS, drivers, services) | M3 |
-| `session-auditor` | Audits active session for context drift and constraint violations | GPT-5.5 |
-| `tui-worker` | Specialized worker for TUI extension edits with 4-layer test loop | GPT-5.5 |
+| `linux-doctor` | System-level diagnostics (OS, drivers, services) | gemini-3.1-pro-preview |
+| `session-auditor` | Audits active session for context drift and constraint violations | MiniMax-M3 |
+| `tui-worker` | Specialized worker for TUI extension edits with 4-layer test loop | sonnet-4-6 |
 
 Package agents (from `npm:pi-subagents`, included automatically):
 

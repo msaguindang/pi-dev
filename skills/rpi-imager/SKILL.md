@@ -83,6 +83,51 @@ Later: read `/tmp/rpi-imager.json`. When present with `status:"ok"`, the image i
 
 ---
 
+## Operational runbook (driving prep + imaging remotely)
+The end-to-end procedure for prepping a Pi over SSH and imaging its card. Two real
+hardware runs failed here — fix both by following this exactly.
+
+1. **Get the FULL repo on the device — not one file.** prep needs its siblings (esp.
+   `ntv-wallpaper.png`). `git clone`/`pull` the player-scripts repo on the device, OR
+   `scp -r /data/dev/work/ntv/player-scripts pi@<dev>:/tmp/` so the wallpaper comes
+   along. A lone `scp` of `ntv-rpi-prep.sh` makes `wallpaper_set` fail HARD.
+2. **Drive over Ethernet — not WiFi.** prep forgets WiFi; if you drove it over that
+   WiFi, the SSH session dies. Use the wired/management link, and add
+   `-o ServerAliveInterval=5 -o ServerAliveCountMax=3` so a severed session dies in
+   ~15s instead of hanging.
+3. **Run prep + capture status:**
+   ```
+   ssh -o ServerAliveInterval=5 -o ServerAliveCountMax=3 pi@<dev> \
+       'cd /tmp/player-scripts && sudo ./ntv-rpi-prep.sh -y --status-file /tmp/prep-status.json' \
+       | tee /tmp/prep-run.log
+   ```
+   Parse the `=== SUMMARY ===` `status` from the local tee'd log — the SUMMARY now
+   arrives BEFORE teardown, so it reaches you over the live link. To inspect then power
+   down by hand, add `--no-shutdown` and `scp pi@<dev>:/tmp/prep-status.json .` off the
+   device first (the device `/tmp` is lost on shutdown).
+4. **Gate check:** proceed ONLY if prep `status == ok`. If any HARD check failed, abort,
+   re-diagnose, re-run — do NOT image a dirty device.
+5. **Move card → imaging PC → run imager** with the captured status as the gate:
+   ```
+   sudo ./ntv-rpi-imager.sh -y --confirm-device "<SIZE>" \
+        --prep-status-file /tmp/prep-status.json \
+        --status-file /tmp/rpi-imager.json --log /tmp/rpi-imager.log /dev/sdX
+   ```
+   The imager refuses to start unless the prep status JSON shows `status:ok`, and
+   mount-verifies the produced `.img` before compression — a dirty artifact is deleted,
+   not shipped.
+
+> ⚠️ **Failure modes (both seen in real runs):**
+> - **Never `scp` the lone script.** The sibling `ntv-wallpaper.png` won't come along →
+>   wallpaper step is skipped → `wallpaper_set` fails. Always put the WHOLE
+>   `player-scripts` dir on the device.
+> - **Never drive prep over the WiFi it wipes.** prep forgets WiFi credentials mid-run;
+>   the SSH session dies (a 22-min hang in the wild). Use Ethernet + `ServerAliveInterval`.
+> - **The device `/tmp` status file is lost on shutdown.** Capture status from the tee'd
+>   stdout, or `scp` the `--status-file` off BEFORE teardown — never read it post-shutdown.
+
+---
+
 ## Safety Guidelines (script-enforced)
 - Headless writes refuse a wrong `/dev/sdX`: `-y` requires `--confirm-device`, which is matched against the device's real `lsblk` MODEL/SIZE before any `dd`.
 - Block-device and not-mounted checks run on BOTH interactive and headless paths.

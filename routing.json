@@ -1,0 +1,4 @@
+{
+  "orchestrator": { "provider": "anthropic", "model": "claude-haiku-4-5" },
+  "worker": { "provider": "anthropic", "model": "claude-sonnet-4-6" }
+}
