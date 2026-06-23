@@ -127,6 +127,83 @@ export default function (pi: ExtensionAPI) {
     if (/infisical\s+(secrets|export)/.test(cmd)) {
       return { block: true, reason: "Blocked" };
     }
+    // ── Post-Mutation Review Gate (hook-layer enforcement) ────────────────
+    // Prompt-level gate (APPEND_SYSTEM.md) was walked past by direct-to-main
+    // commits. Enforce here: device/deploy script changes cannot land on
+    // main/master without a reviewer sign-off marker. Hard block, not confirm
+    // (confirms get rubber-stamped).
+    const isCommit = /git\s+commit/.test(cmd);
+    const isPush = /git\s+push/.test(cmd);
+    if (isCommit || isPush) {
+      const cwd = (event.input.cwd as string) ?? process.cwd();
+
+      // Resolve current branch (best-effort; non-git dirs just skip the gate).
+      let currentBranch = "";
+      try {
+        currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+          cwd,
+          stdio: "pipe",
+        }).toString().trim();
+      } catch {
+        currentBranch = "";
+      }
+
+      const protectedBranches = ["main", "master"];
+      // A commit advances main/master only when HEAD is on main/master.
+      // A push targets main/master when HEAD is on it OR the refspec names it.
+      const branchPattern = new RegExp(`\\b(${protectedBranches.join("|")})\\b`);
+      const advancesProtected =
+        (isCommit && protectedBranches.includes(currentBranch)) ||
+        (isPush && (protectedBranches.includes(currentBranch) || branchPattern.test(cmd)));
+
+      if (advancesProtected) {
+        // Detect whether the repo contains operationally-dangerous scripts.
+        const protectedScriptPatterns = [
+          /ntv-rpi-prep/,
+          /ntv-rpi-imager/,
+          /-prep\.sh$/,
+          /-imager\.sh$/,
+          /-deploy/,
+          /player-scripts/,
+        ];
+        let repoHasProtectedScripts = false;
+        try {
+          const tracked = execSync("git ls-files", { cwd, stdio: "pipe" })
+            .toString()
+            .split("\n")
+            .filter(Boolean);
+          repoHasProtectedScripts = tracked.some(f =>
+            protectedScriptPatterns.some(p => p.test(f)) ||
+            (/\.sh$/.test(f) && /(deploy|prep|imager|device|rpi)/.test(f))
+          );
+        } catch {
+          repoHasProtectedScripts = false;
+        }
+
+        if (repoHasProtectedScripts) {
+          // Review markers that lift the block.
+          const hasReviewedByTrailer = /Reviewed-by:/i.test(cmd);
+          const hasOverrideEnv = process.env.PI_REVIEW_OVERRIDE === "1";
+          let hasReviewMarkerFile = false;
+          try {
+            hasReviewMarkerFile = fs.existsSync(path.join(cwd, ".review-pass"));
+          } catch {
+            hasReviewMarkerFile = false;
+          }
+
+          if (!hasReviewedByTrailer && !hasOverrideEnv && !hasReviewMarkerFile) {
+            return {
+              block: true,
+              reason:
+                "BLOCKED: device/deploy script change to main requires reviewer sign-off. " +
+                "Route through `reviewer` (Post-Mutation Review Gate) and add a 'Reviewed-by:' trailer " +
+                "to the commit message, or set PI_REVIEW_OVERRIDE=1 for a documented emergency.",
+            };
+          }
+        }
+      }
+    }
+
     if (/git\s+push/.test(cmd)) {
       if (/--force|(?<![a-zA-Z])-f(?![a-zA-Z])/.test(cmd)) {
         return { block: true, reason: "Blocked" };
