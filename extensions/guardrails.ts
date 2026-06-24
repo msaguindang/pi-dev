@@ -222,7 +222,37 @@ export default function (pi: ExtensionAPI) {
         if (!ok) return { block: true, reason: "Blocked" };
       }
     }
-    if (/\b(ssh|scp|sshpass)\b/.test(cmd)) {
+    // Strip heredoc bodies before pattern matching to prevent false-positives.
+    // A heredoc can embed documentation text (e.g. ssh/rm -rf examples) that
+    // should NOT be treated as actual shell commands.
+    const stripHeredocBodies = (input: string): string => {
+      const lines = input.split("\n");
+      const out: string[] = [];
+      let delimiter: string | null = null;
+      for (const line of lines) {
+        if (delimiter === null) {
+          // Detect heredoc opener: << or <<- followed by optional quotes and a word
+          const m = line.match(/<<-?\s*['"]?(\w+)['"]?\s*$/);
+          if (m) {
+            delimiter = m[1];
+            out.push(line); // keep opener line
+          } else {
+            out.push(line);
+          }
+        } else {
+          // Inside heredoc body — skip body lines, keep only the closing delimiter
+          if (line.trim() === delimiter) {
+            delimiter = null;
+            out.push(line); // keep closing delimiter line
+          }
+          // else: silently drop body line
+        }
+      }
+      return out.join("\n");
+    };
+    const cmdSafe = stripHeredocBodies(cmd);
+
+    if (/\b(ssh|scp|sshpass)\b/.test(cmdSafe)) {
       // Word-boundaried file ops (avoid matching cpu/thermal/firmware/used/adapter in diagnostic text)
       const destructiveFileOps = /\brm\b|\bsed\b\s+-i|\bcp\b|\bmv\b|\btruncate\b|\breboot\b|\bshutdown\b|\bpoweroff\b/.test(cmd);
       // Service/package/process managers: flag MUTATING subcommands only — read-only status/logs/list/show stay free
