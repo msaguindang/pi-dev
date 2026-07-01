@@ -40,15 +40,6 @@ Required files — write these yourself:
 | `~/.agents/context/long-term.md` | Domain knowledge, project context, decision log |
 | `~/.agents/standards/code-style.md` | Your project's commit format, language conventions |
 
-Optional but recommended:
-
-```bash
-# Copy generic standards (not personal)
-cp ~/.pi/agent/standards-templates/tool-policy.md ~/.agents/standards/tool-policy.md
-```
-
-See `context-templates/` in this repo for starter files.
-
 ### 3. Copy settings
 
 ```bash
@@ -186,8 +177,8 @@ Loaded automatically at startup via `settings.json` `extensions` array.
 | `tool-cache.ts` | Caches repeated tool results within a session |
 | `tui-dryrun.ts` | ANSI validation guard — blocks TUI edits without dry-run verification |
 | `atuin.ts` | *(disabled by default)* Tracks pi bash commands in [Atuin](https://github.com/atuinsh/atuin) history with author `pi`. Requires `atuin` installed and `atuin hook install pi` run. Enable by changing `-extensions/atuin.ts` to `+extensions/atuin.ts` in `settings.json`. |
-| `prompt-classifier.ts` | No-op classifier stub — disabled | `*(disabled)*` |
-| `prompt-router.ts` | Dead routing extension — disabled | `*(disabled)*` |
+| `prompt-classifier.ts` | *(disabled)* No-op classifier stub |
+| `prompt-router.ts` | *(disabled)* Dead letter routing extension |
 
 To disable an extension, prefix its entry with `-` in `settings.json`:
 
@@ -220,7 +211,6 @@ Invoke with `/skill-name` in a pi session.
 
 | Skill | Purpose |
 |---|---|
-| `delegation-validator` | Pre-dispatch prompt validation for NTV sub-agent pipelines |
 | `discord-eod-fetcher` | Fetches EOD updates from NTV Discord into Obsidian |
 | `ntv-pr-reviewer` | 6-agent parallel PR review for NTV repositories |
 | `ntv-worktree-manager` | Git worktree creation across NTV mono-repo ecosystem |
