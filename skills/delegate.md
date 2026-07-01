@@ -9,24 +9,24 @@ Use for non-trivial tasks: multi-file edits, new features, refactors, extension 
 
 ```
 Phase 1 — Planner
-  Model: gemini-3.5-flash
+  Model: claude-sonnet-4-6 (medium)
   Task:  Produce a step-by-step plan with exact file paths and verification commands.
          No code. Only the roadmap.
   Gate:  Plan approved by user before proceeding.
 
 Phase 2 — Reviewer (Pre-flight)
-  Model: gemini-3.5-flash
+  Model: claude-haiku-4-5 (medium)
   Task:  Review the plan for spec violations, missing edge cases, incorrect assumptions.
          Output: APPROVED or list of BLOCKERS.
   Gate:  No blockers before proceeding.
 
 Phase 3 — Worker
-  Model: claude-sonnet-4-6 (via PromptRouter upgrade)
+  Model: claude-sonnet-4-6
   Task:  Execute the plan exactly. One commit per logical unit. Self-review before committing.
   Gate:  All tasks committed and clean.
 
 Phase 4 — QA (Two-stage)
-  Model: gemini-3.5-flash
+  Model: claude-haiku-4-5 (medium)
   Stage A — Spec compliance: Does the implementation match the plan?
   Stage B — Code quality: Correctness, error handling, style adherence.
   Gate:  Both stages pass before marking done.
@@ -41,7 +41,7 @@ Each phase maps to a `subagent()` call. Use chain form only when automatic conte
 ```js
 subagent({
   agent: "worker",
-  task: "You are a Planner. Produce a step-by-step implementation plan for the following task. Include exact file paths, the change required at each file, and a verification command per step. Output the plan only — no code.\n\nTask: Refactor the PromptRouter extension to support wildcard keyword matching. Scope: ~/.pi/agent/extensions/prompt-router.ts"
+  task: "You are a Planner. Produce a step-by-step implementation plan for the following task. Include exact file paths, the change required at each file, and a verification command per step. Output the plan only — no code.\n\nTask: <your task description here>"
 })
 ```
 

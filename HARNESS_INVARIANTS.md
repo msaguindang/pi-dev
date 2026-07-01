@@ -1,7 +1,7 @@
 # Harness Invariants
 
 The contract for "the pi harness is working as expected." Each invariant is an
-assertion + how to check it. Run `./harness-audit.sh` to verify all programmatically.
+assertion + how to check it. Run the `pi-harness-auditor` Claude Code agent to verify all programmatically.
 
 > **Meta-rule (the gotcha that keeps biting):** a fix is not live until the session
 > is **reloaded**. Committed ≠ running. After any harness change, start a fresh /
@@ -21,17 +21,22 @@ assertion + how to check it. Run `./harness-audit.sh` to verify all programmatic
 | `planner` | `anthropic/claude-sonnet-4-6` | `high` | reasoning role — thinking belongs here |
 | `session-auditor` | `minimax/MiniMax-M3` | `high` | cheap-tier bulk audit |
 | `linux-doctor` | `google/gemini-3.1-pro-preview-customtools` | inherit (`low`) | diagnostics |
+| `oracle` | `anthropic/claude-sonnet-4-6` | `high` | reasoning/review — fork context analysis |
+| `researcher` | `google/gemini-3.1-pro-preview-customtools` | `medium` | web research + synthesis — Gemini strong on search tasks |
+| `context-builder` | `anthropic/claude-sonnet-4-6` | `medium` | codebase analysis + handoff meta-prompt — code-heavy, Claude edge |
+| `delegate` | inherit (orchestrator default) | inherit (`medium`) | lightweight dispatch, inherits parent |
+| `reviewer` | `anthropic/claude-haiku-4-5` | `medium` | read-only gate — Haiku sufficient for verification |
 
-- **INV-1** orchestrator pinned `defaultProvider=anthropic`, `defaultModel=claude-haiku-4-5`, `defaultThinkingLevel=low`. Check: `grep settings.json`.
+- **INV-1** orchestrator pinned `defaultProvider=anthropic`, `defaultModel=claude-haiku-4-5`, `defaultThinkingLevel=medium`. Check: `grep settings.json`.
 - **INV-2** `worker` + `tui-worker` are `thinking: medium` (NOT high). Check: frontmatter grep.
 - **INV-3** `planner` is `thinking: high`. Check: frontmatter grep.
-- **INV-4** every agent's `model:` matches the table (no `openai-codex`/`gpt-5.5`/dropped providers). Check: frontmatter grep.
+- **INV-4** every agent's `model:` matches the table (oracle, worker, tui-worker, planner, session-auditor, linux-doctor have explicit pins). Check: frontmatter grep.
 
 ## Delegation behavior
 
-- **INV-5** No agent instructs a subagent to **block on a supervisor** — no "wait for the reply" / "stay alive to receive the reply". Subagents are autonomous by default and **return** genuinely-blocking decisions in their result (options + recommendation). Check: `grep -ri "wait for the reply\|stay alive to receive" agents/` returns only negative guards ("NEVER wait...").
-- **INV-6** `contact_supervisor`/`intercom` are non-blocking progress only, never a gate. (It times out ~10 min against a fire-and-forget orchestrator — proven failure mode.)
-- **INV-7** Providers are utilized, none idle by design: anthropic (orchestrator + worker/planner/tui-worker), google (linux-doctor), minimax (session-auditor).
+- **INV-5** No agent instructs a subagent to **block on a supervisor** — subagents are autonomous by default and **return** genuinely-blocking decisions in their result (options + recommendation). Blocking decisions are surfaced in the result, never waited on. Check: agent `.md` files contain "NEVER block" language and no "wait for reply" patterns.
+- **INV-6** Agent autonomy: subagents do not block waiting for supervisor feedback. Genuinely-blocking decisions are surfaced in agent results with options + recommendation; the orchestrator/user decides and re-dispatches if needed. This constraint is enforced in agent `.md` documentation and validated during review.
+- **INV-7** Providers are utilized, none idle by design: anthropic (orchestrator + worker/planner/tui-worker/oracle/context-builder), google (linux-doctor/researcher), minimax (session-auditor).
 
 ## Cost observability
 
@@ -46,5 +51,4 @@ assertion + how to check it. Run `./harness-audit.sh` to verify all programmatic
 ## Extension load order
 
 - **INV-12** `adjutant-editor.ts` must load before `adjutant-greeting.ts`. Greeting reads editor state established by the editor extension; if editor loads after, the greeting renders against an uninitialized context. Check: `adjutant-editor` appears before `adjutant-greeting` in the `extensions` array in `settings.json`.
-- **INV-13** `guardrails.ts` must load before `PromptRouter.ts`. The `tool_call` hook registered by guardrails must be in place before PromptRouter begins routing — otherwise destructive ops dispatched via DELEGATE/CHAIN bypass the safety intercept. Check: `guardrails` appears before `PromptRouter` in the `extensions` array in `settings.json`.
 - **INV-14** `harness-audit-gate.ts` must load after `guardrails.ts`. The audit gate reads state that guardrails sets; loading before guardrails causes the gate to evaluate against uninitialized state and may pass checks that should block. Check: `harness-audit-gate` appears after `guardrails` in the `extensions` array in `settings.json`.

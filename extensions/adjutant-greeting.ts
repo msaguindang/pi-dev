@@ -680,17 +680,6 @@ interface AgentEntry {
   subtitle: string;
 }
 
-const TIER2_AGENTS: AgentEntry[] = [
-  { name: "scout", subtitle: "recon" },
-  { name: "oracle", subtitle: "consistency" },
-  { name: "planner", subtitle: "planning" },
-  { name: "researcher", subtitle: "web research" },
-  { name: "reviewer", subtitle: "code review" },
-  { name: "context-builder", subtitle: "deep analysis" },
-  { name: "worker", subtitle: "implementation" },
-  { name: "delegate", subtitle: "lightweight" },
-];
-
 function loadDomainAgents(): AgentEntry[] {
   try {
     const agentsDir = join(osHomedir(), ".pi", "agent", "agents");
@@ -707,7 +696,23 @@ function loadDomainAgents(): AgentEntry[] {
   }
 }
 
-const TIER3_AGENTS: AgentEntry[] = loadDomainAgents();
+const ALL_DOMAIN_AGENTS: AgentEntry[] = loadDomainAgents();
+const DOMAIN_OVERRIDE_NAMES = new Set(ALL_DOMAIN_AGENTS.map(a => a.name));
+
+const PIPELINE_AGENT_NAMES = new Set(["scout", "oracle", "planner", "researcher", "reviewer", "context-builder", "worker", "delegate"]);
+
+const TIER2_AGENTS: AgentEntry[] = [
+  { name: "scout", subtitle: "recon" },
+  { name: "oracle", subtitle: "consistency" },
+  { name: "planner", subtitle: "planning" },
+  { name: "researcher", subtitle: "web research" },
+  { name: "reviewer", subtitle: "code review" },
+  { name: "context-builder", subtitle: "deep analysis" },
+  { name: "worker", subtitle: "implementation" },
+  { name: "delegate", subtitle: "lightweight" },
+].map(a => DOMAIN_OVERRIDE_NAMES.has(a.name) ? { ...a, subtitle: `${a.subtitle} · local` } : a);
+
+const TIER3_AGENTS: AgentEntry[] = ALL_DOMAIN_AGENTS.filter(a => !PIPELINE_AGENT_NAMES.has(a.name));
 
 // ── Agent Color Palette ──────────────────────────────────────────────────
 

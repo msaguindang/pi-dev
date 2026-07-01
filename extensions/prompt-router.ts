@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { classifyPrompt } from "./PromptClassifier";
+import { classifyPrompt } from "./prompt-classifier";
 
 export default function (pi: ExtensionAPI) {
   pi.on("input", async (event, ctx) => {

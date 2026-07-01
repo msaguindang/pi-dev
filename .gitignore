@@ -28,3 +28,6 @@ scripts/
 
 # Pi runtime config — pi writes back to this on every session; use settings.json.example instead
 settings.json
+
+# Subagent fallback output artifact (written when pi-intercom absent)
+context.md

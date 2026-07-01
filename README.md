@@ -2,7 +2,7 @@
 
 Portable configuration layer for [`pi`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) — the multi-agent coding CLI. This repo (`~/.pi/agent`) is the shareable half. Personal context lives in a separate vault (`~/.agents`).
 
-**Model stack:** Claude Haiku 4.5 (orchestrator, low-thinking) + Claude Sonnet 4.6 (workers/reviewers). Requires Anthropic API key.
+**Model stack:** Claude Haiku 4.5 (orchestrator, medium-thinking) + Claude Sonnet 4.6 (workers/reviewers). Requires Anthropic API key.
 
 ---
 
@@ -55,7 +55,7 @@ See `context-templates/` in this repo for starter files.
 cp ~/.pi/agent/settings.json.example ~/.pi/agent/settings.json
 ```
 
-`settings.json` is gitignored — pi writes runtime state back to it on every session (last model used, changelog version, etc). The example file has the correct defaults (`anthropic/claude-haiku-4-5`, low thinking, all extensions, Tokyo Night theme). Copy it once; pi owns it from there.
+`settings.json` is gitignored — pi writes runtime state back to it on every session (last model used, changelog version, etc). The example file has the correct defaults (`anthropic/claude-haiku-4-5`, medium thinking, all extensions, Tokyo Night theme). Copy it once; pi owns it from there.
 
 ### 4. Set up providers
 
@@ -90,9 +90,14 @@ pi "hello"
 ├── APPEND_SYSTEM.md                # routing rules, pre-fix gate, TUI rendering
 ├── settings.json.example           # template — copy to settings.json on first setup (gitignored at runtime)
 ├── agents/                         # specialized sub-agents
+│   ├── delegate.md                 # local override
 │   ├── linux-doctor.md
+│   ├── oracle.md                   # local override
+│   ├── planner.md                  # local override
+│   ├── reviewer.md                 # local override
 │   ├── session-auditor.md
-│   └── tui-worker.md
+│   ├── tui-worker.md
+│   └── worker.md                   # local override
 ├── extensions/                     # TypeScript extensions loaded at startup
 ├── skills/                         # slash-command skills
 └── themes/                         # custom TUI themes
@@ -128,22 +133,18 @@ pi "hello"
 
 ## Model Routing
 
-Configured in two places:
+Orchestrator model is set in `settings.json`. Worker/subagent models are set per-agent in `agents/*.md` frontmatter.
 
 | Config | Controls |
 |---|---|
 | `settings.json` → `defaultProvider` + `defaultModel` | Orchestrator (main session model) |
-| `routing.json` → `worker.model` | All sub-agents dispatched via DELEGATE / CHAIN |
+| `agents/<name>.md` → `model:` frontmatter | Per-agent model override for subagents |
 
-`PromptClassifier.ts` classifies every prompt as `DIRECT`, `DELEGATE`, or `CHAIN`. `PromptRouter.ts` reads `routing.json` at startup and injects the worker model into sub-agent dispatch hints:
-
-- **DIRECT** — orchestrator responds inline, no delegation
-- **DELEGATE** — notify: use `subagent({ agent, task, model: "<worker.model>" })`
-- **CHAIN** — notify: use `subagent({ chain: [...], model: "<worker.model>" })`
+Subagent dispatch is handled via `APPEND_SYSTEM.md` routing rules. The orchestrator decides when to delegate based on prompt context — no automatic prompt classification is applied.
 
 ### Changing the model stack
 
-**1. Orchestrator** — edit `settings.json`:
+**Orchestrator** — edit `settings.json`:
 
 ```json
 {
@@ -152,18 +153,17 @@ Configured in two places:
 }
 ```
 
-**2. Workers / Reviewers** — edit `routing.json`:
+**Per-agent worker model** — edit `agents/<name>.md` frontmatter:
 
-```json
-{
-  "orchestrator": { "provider": "anthropic", "model": "claude-haiku-4-5" },
-  "worker": { "provider": "anthropic", "model": "claude-sonnet-4-6" }
-}
+```yaml
+---
+name: worker
+model: anthropic/claude-sonnet-4-6
+thinking: medium
+---
 ```
 
-`routing.json` is read once at extension startup. Change the `worker.model` value to any model ID returned by `pi --list-models`. If the file is missing, `PromptRouter.ts` falls back to `gpt-5.5`.
-
-The `orchestrator` block in `routing.json` is documented for reference — it is not read by any extension (pi reads `settings.json` directly for the session model). Keep both in sync.
+Run `pi --list-models` to see available model IDs for your configured providers.
 
 ---
 
@@ -182,12 +182,12 @@ Loaded automatically at startup via `settings.json` `extensions` array.
 | `first-run.ts` | One-time onboarding wizard on fresh installs |
 | `gmail.ts` | Gmail API integration (requires Google OAuth) |
 | `guardrails.ts` | Blocks or confirms destructive ops (SSH rm/reboot, npm publish) |
-| `PromptClassifier.ts` | Classifies prompts as DIRECT / DELEGATE / CHAIN |
-| `PromptRouter.ts` | Routes sub-agent dispatch hints based on classification |
 | `session-name-status.ts` | Shows active session name in TUI status bar |
 | `tool-cache.ts` | Caches repeated tool results within a session |
 | `tui-dryrun.ts` | ANSI validation guard — blocks TUI edits without dry-run verification |
 | `atuin.ts` | *(disabled by default)* Tracks pi bash commands in [Atuin](https://github.com/atuinsh/atuin) history with author `pi`. Requires `atuin` installed and `atuin hook install pi` run. Enable by changing `-extensions/atuin.ts` to `+extensions/atuin.ts` in `settings.json`. |
+| `prompt-classifier.ts` | No-op classifier stub — disabled | `*(disabled)*` |
+| `prompt-router.ts` | Dead routing extension — disabled | `*(disabled)*` |
 
 To disable an extension, prefix its entry with `-` in `settings.json`:
 
@@ -247,16 +247,18 @@ Located in `agents/`. Invoked via `subagent({ agent: "<name>", task })`.
 
 Package agents (from `npm:pi-subagents`, included automatically):
 
-| Agent | Role |
-|---|---|
-| `scout` | Fast codebase recon |
-| `context-builder` | Deep analysis + meta-prompt for planning |
-| `oracle` | Decision-consistency, drift protection |
-| `planner` | Implementation planning |
-| `researcher` | Web research + doc lookup |
-| `reviewer` | Code, plan, and PR review |
-| `worker` | Implementation with supervisor escalation |
-| `delegate` | Lightweight worker, inherits parent model |
+| Agent | Role | Model |
+|---|---|---|
+| `scout` | Fast codebase recon | — |
+| `context-builder` | Deep analysis + meta-prompt for planning | anthropic/claude-sonnet-4-6 *(local override)* |
+| `oracle` | Decision-consistency, drift protection | anthropic/claude-sonnet-4-6 *(local override)* |
+| `planner` | Implementation planning | anthropic/claude-sonnet-4-6 *(local override)* |
+| `researcher` | Web research + doc lookup | google/gemini-3.1-pro-preview-customtools |
+| `reviewer` | Code, plan, and PR review | anthropic/claude-haiku-4-5 *(local override)* |
+| `worker` | Implementation with supervisor escalation | anthropic/claude-sonnet-4-6 *(local override)* |
+| `delegate` | Lightweight worker, inherits parent model | inherit orchestrator *(local override)* |
+
+**Note:** `researcher` and `context-builder` are model-pinned via `agentOverrides` in `settings.json.example` and do not have local `.md` overrides in `agents/`.
 
 ---
 

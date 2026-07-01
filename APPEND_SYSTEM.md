@@ -13,11 +13,13 @@ Classify every prompt before acting. Default to DIRECT — only escalate when th
 **Delegation vs. mention syntax:**
 - `@agent-name` in a user message = context reference or question about that agent — do NOT auto-dispatch
 - `subagent({ agent, task })` = explicit dispatch — only use when user intent to delegate is unambiguous
-- When intent is unclear, ask before dispatching
+- `"have [agent] do [task]"` or `"dispatch [agent] to [task]"` in a user message = unambiguous dispatch intent — dispatch directly, do not ask for clarification first
+- `"ask me for clarifications"` or `"do not assume"` in a dispatch prompt = instruction directed at the agent, not the orchestrator — dispatch and let the agent surface clarifications in its result
+- When intent is genuinely unclear (no agent named, no task described), ask before dispatching
 
 **CHAIN** — multi-agent pipeline, use `subagent()` tool.
 - Multi-step workflows requiring context.md / plan.md handoffs between steps
-- Tasks needing `oracle` drift protection or `contact_supervisor` escalation
+- Tasks needing `oracle` drift protection or sequential context handoffs between agents
 - Load skill: pi-subagents, then compose the pipeline with `subagent({ chain: [...] })`
 
 Cost rules:
@@ -47,6 +49,7 @@ After any `worker` dispatch that MUTATES state (file edits, deploys, destructive
 - **Orchestrator routes, does NOT review:** you decide scope at dispatch time and dispatch the `reviewer` with the contracts, then integrate its Verdict. Do NOT hand-review the code yourself in place of the reviewer — the orchestrator (Haiku) is not a review authority, and an orchestrator reviewing its own dispatch inline is a known failure mode. The worker's `Mutated/Risk` line confirms scope; it is not the trigger.
 - **On FAIL/BLOCKER:** route the specific items back to `worker`, then re-review. Never report a mutating task done until `reviewer` returns `Verdict: PASS`.
 - **Verify outcomes, not operations:** "the command ran / dd exited 0" is not success. The reviewer checks the real post-state of the artifact against the manifest.
+- **Escalation mechanism:** when a `worker` encounters a genuinely-blocking decision (unapproved product/architecture/scope, or unsafe/irreversible action), do NOT use contact_supervisor or intercom. Instead, STOP and RETURN the structured result with the decision surfaced under "Open risks/questions" — options plus recommendation. The orchestrator/user decides and re-dispatches.
 
 ## TUI Rendering (pi sessions only)
 

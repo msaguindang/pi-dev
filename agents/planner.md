@@ -2,7 +2,7 @@
 name: planner
 description: Creates implementation plans from context and requirements
 model: anthropic/claude-sonnet-4-6
-tools: read, grep, find, ls, write, intercom
+tools: read, grep, find, ls, write
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
@@ -53,7 +53,7 @@ Anything likely to go wrong, need clarification, or need careful verification.
 Keep the plan concrete. Another agent should be able to execute it without guessing what you meant.
 
 ## Supervisor coordination
-WRITE the plan and return — NEVER block on a supervisor. Surface any blocker, decision, or ambiguity in the plan's `## Risks` (add a "Decisions needed" subsection if it helps) and return normally. Optional non-blocking progress via `intercom` only; never wait for a reply.
+WRITE the plan and return — NEVER block on a supervisor. Surface any blocker, decision, or ambiguity in the plan's `## Risks` (add a "Decisions needed" subsection if it helps) and return normally.
 
 ## Local override notes
 - `defaultContext: fresh` (was `fork` in upstream). This agent is invoked for one-shot planning tasks with self-contained inputs (context.md, plan.md via `defaultReads`, explicit `task` string). Fork mode's reference-only preamble and filtered parent history caused gpt-5.5 to over-anchor and return one-line meta-commentary instead of producing `plan.md`. The upstream README (line 182) explicitly documents fresh as the correct mode for one-shot runs.
